@@ -7,6 +7,7 @@ import type { Page } from "./pipeline/extract-text.js";
 import { createRecord, newParseId, runPipeline, type ParseRecord } from "./pipeline/run.js";
 import { buildCallSheet } from "./report/call-sheet.js";
 import { renderSummary } from "./report/summary.js";
+import { uploadPage } from "./report/upload.js";
 import { loadFile, saveFile } from "./store.js";
 
 const facilities = FacilitiesSchema.parse(facilitiesJson);
@@ -30,6 +31,7 @@ export function createApp(deps: AppDeps = {}) {
   const app = new Hono();
   const makeLlm = deps.llm ?? (() => createLlm());
 
+  app.get("/", (c) => c.html(uploadPage));
   app.get("/health", (c) => c.json({ ok: true }));
 
   app.post("/api/parses", async (c) => {

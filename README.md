@@ -31,7 +31,8 @@ All bodies are JSON unless noted. Stage 1 ships the facility endpoints; the pars
 | `GET /api/facilities` | Array of facility profiles (see Policy and capacity data) |
 | `GET /api/facilities/:id` | One profile (`A`, `B`, `C`) plus its current `capacity` snapshot |
 | `PUT /api/facilities/:id/capacity` | Replace that facility's capacity snapshot. Body validated against the capacity schema (`src/policy/schema.ts`); `400` with `issues` on failure. Persists to `src/capacity/snapshot.json` |
-| `POST /api/parses` | (future) `multipart/form-data`, field `packet` = PDF. `202 {"id": "...", "status": "processing"}` |
+| `GET /` | Upload page: pick a PDF, waits for the parse, opens the summary |
+| `POST /api/parses` | `multipart/form-data`, field `file` = PDF. `202 {"parseId": "..."}` |
 | `GET /api/parses/:id` | (future) Full result, shape below. While `status` is `processing`, only `id`, `status`, `progress` are present |
 | `GET /api/parses/:id/summary` | (future) Compact row per facility for the list view |
 | `GET /api/parses/:id/call-sheet` | Flat voice-agent call sheet, see "Follow-up asks and the call sheet" |
