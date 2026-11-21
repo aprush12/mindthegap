@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const dir = () => process.env.DATA_DIR ?? "data";
@@ -38,7 +38,11 @@ export function parseDir(id: string): string {
 export async function saveFile(id: string, name: string, value: unknown): Promise<void> {
   await mkdir(parseDir(id), { recursive: true });
   const body = value instanceof Uint8Array ? value : JSON.stringify(value, null, 2);
-  await writeFile(path.join(parseDir(id), name), body);
+  // write-then-rename so a reader polling result.json never sees a half-written file
+  const target = path.join(parseDir(id), name);
+  const tmp = `${target}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  await writeFile(tmp, body);
+  await rename(tmp, target);
 }
 
 export async function loadFile<T>(id: string, name: string): Promise<T | undefined> {

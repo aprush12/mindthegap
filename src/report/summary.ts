@@ -15,6 +15,8 @@ export interface SummaryInput {
   headline?: Headline;
   /** Display names keyed by facility id; falls back to "Facility X". */
   facilityNames?: Partial<Record<FacilityId, string>>;
+  /** Parts of the packet that couldn't be read this run; shown above everything else. */
+  warnings?: string[];
 }
 
 const VERDICT_LABEL: Record<Verdict, string> = {
@@ -201,6 +203,7 @@ thead th{background:#f3f5f7}tbody th{font-weight:600;width:22%}
 </style></head><body>
 <header><h1>Referral screening summary</h1>
 <div class="meta">Parse <code>${esc(input.parseId)}</code> &middot; Arrival ${esc(fmtTime(input.arrivalAt ?? input.evaluatedAt))}${input.arrivalAt ? "" : " (not stated in the record; wall clock used)"}</div></header>
+${input.warnings?.length ? `<div class="warn" style="border:1px solid #d99a00;background:#fff7e0;color:#5a4000;padding:10px 14px;border-radius:8px;margin:12px 0"><b>Incomplete screen.</b><ul style="margin:4px 0 0">${input.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
 ${mattersMostHtml(input)}
 <h2>Verdicts</h2>
 ${table}

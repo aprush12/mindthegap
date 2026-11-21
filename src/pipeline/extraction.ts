@@ -177,6 +177,20 @@ function toAnswer(raw: RawAnswer): RuleAnswer {
   return answer;
 }
 
+function toMeds(rawMeds: RawMedications): Med[] {
+  return rawMeds.medications.map((m) => {
+    const med: Med = { name: m.name };
+    for (const k of ["dose", "route", "schedule", "firstDoseDue"] as const) if (m[k]) med[k] = m[k];
+    for (const k of ["controlled", "hardCopyPresent", "correctionScale"] as const) if (m[k] !== "unknown") med[k] = m[k] === "yes";
+    const changes: DoseChange[] = (m.doseChanges ?? []).map((d) => ({
+      listedDose: d.listedDose, noteDose: d.noteDose, ...(d.noteContext ? { noteContext: d.noteContext } : {}),
+      quoteList: d.quoteList, pageList: d.pageList, quoteNote: d.quoteNote, pageNote: d.pageNote,
+    }));
+    if (changes.length) med.doseChanges = changes;
+    return med;
+  });
+}
+
 function toFacts(raw: RawFacts, rawMeds: RawMedications): { timing: Timing; patient: Patient; medications: Med[]; monitoringOrders?: MonitoringOrders } {
   const timing: Timing = {};
   if (raw.timing.dischargeAt) timing.dischargeAt = raw.timing.dischargeAt;
@@ -189,17 +203,7 @@ function toFacts(raw: RawFacts, rawMeds: RawMedications): { timing: Timing; pati
     for (const [k, v] of Object.entries(dx)) if (v != null) flags[k] = v;
     if (Object.keys(flags).length) patient.diagnoses = flags;
   }
-  const medications: Med[] = rawMeds.medications.map((m) => {
-    const med: Med = { name: m.name };
-    for (const k of ["dose", "route", "schedule", "firstDoseDue"] as const) if (m[k]) med[k] = m[k];
-    for (const k of ["controlled", "hardCopyPresent", "correctionScale"] as const) if (m[k] !== "unknown") med[k] = m[k] === "yes";
-    const changes: DoseChange[] = (m.doseChanges ?? []).map((d) => ({
-      listedDose: d.listedDose, noteDose: d.noteDose, ...(d.noteContext ? { noteContext: d.noteContext } : {}),
-      quoteList: d.quoteList, pageList: d.pageList, quoteNote: d.quoteNote, pageNote: d.pageNote,
-    }));
-    if (changes.length) med.doseChanges = changes;
-    return med;
-  });
+  const medications = toMeds(rawMeds);
   const mo = raw.monitoringOrders;
   const monitoringOrders: MonitoringOrders | undefined = mo
     ? { dailyWeightsOrdered: mo.dailyWeightsOrdered, weightEscalationPlan: mo.weightEscalationPlan, evidence: mo.evidence.map((e) => ({ quote: e.quote, claimedPage: e.page })) }
@@ -225,27 +229,105 @@ export interface ExtractionOutput {
   extraction: Extraction;
   /** Medication lines with their quotes, for evidence anchoring and display. */
   medicationEvidence: Evidence[];
+  /** Category calls that failed; their rules are left unanswered (the engine treats them as unknown). */
+  failedCategories: string[];
 }
 
+/** Plain-language names for the progress UI. */
+export const CATEGORY_LABELS: Record<(typeof CATEGORIES)[number], string> = {
+  PAY: "Insurance and payment",
+  REG: "Screening paperwork (PASRR, capacity)",
+  ACU: "Acuity: lines, oxygen, vents, insulin",
+  INF: "Infection and isolation",
+  SKN: "Wounds and skin",
+  THR: "Therapy needs",
+  NUT: "Diet and nutrition",
+  MON: "Monitoring orders",
+  FUP: "Follow-up appointments",
+  DCP: "Discharge plan",
+};
+
+/** Progress callbacks, one per model call ("facts", "medications", "category-PAY", ...). */
+export interface StepHooks {
+  start?(id: string): void;
+  done?(id: string, info: { detail: string; data?: Record<string, unknown> }): void;
+  fail?(id: string, error: string): void;
+}
+
+export const extractionStepIds = (rules: Rule[]) => [
+  "facts",
+  "medications",
+  ...categoryJobs(rules).map((j) => `category-${j.cat}`),
+];
+
+const categoryJobs = (rules: Rule[]) =>
+  CATEGORIES.map((cat) => ({ cat, rules: rules.filter((r) => r.category === cat && !COMPUTED_RULES.has(r.id)) })).filter((j) => j.rules.length > 0);
+
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 /**
- * One facts call first (warms the prompt cache for the packet), then the medications call alongside
- * the ten category calls at bounded concurrency. Every call shares SYSTEM_PROMPT + the cached document block.
+ * Facts, medications and the ten category calls run in one bounded pool. The caller warms the prompt
+ * cache first (the document-map call), so every call here reads the cached packet.
+ * Facts and medications are required (the verdict depends on them); a failed category call only
+ * leaves its rules unanswered, which the engine already treats as unknown, never as a pass.
  */
-export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], concurrency = 4): Promise<ExtractionOutput> {
+export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], concurrency = 6, hooks: StepHooks = {}): Promise<ExtractionOutput> {
   const rx06 = rules.find((r) => r.id === "RX-06");
   if (!rx06) throw new Error("rules missing RX-06");
   const base = { system: SYSTEM_PROMPT, pdfBase64 };
 
-  const factsRaw = await llm.parse({ ...base, label: "facts", schema: FactsResultSchema, instruction: factsInstruction(rx06) });
+  let factsRaw: RawFacts | undefined;
+  let medsRaw: RawMedications | undefined;
+  const results: { job: ReturnType<typeof categoryJobs>[number]; res: z.infer<typeof CategoryResultSchema> }[] = [];
+  const failedCategories: string[] = [];
 
-  const jobs = CATEGORIES.map((cat) => ({ cat, rules: rules.filter((r) => r.category === cat && !COMPUTED_RULES.has(r.id)) })).filter((j) => j.rules.length > 0);
-  const [medsRaw, results] = await Promise.all([
-    llm.parse({ ...base, label: "medications", schema: MedicationsResultSchema, instruction: medicationsInstruction() }),
-    pool(jobs, concurrency, async (job) => {
-      const res = await llm.parse({ ...base, label: `category-${job.cat}`, schema: CategoryResultSchema, instruction: categoryInstruction(job.cat, job.rules) });
-      return { job, res };
-    }),
-  ]);
+  type Task = { id: string; required: boolean; run: () => Promise<{ detail: string; data?: Record<string, unknown> }> };
+  const tasks: Task[] = [
+    {
+      id: "facts", required: true,
+      run: async () => {
+        factsRaw = await llm.parse({ ...base, label: "facts", schema: FactsResultSchema, instruction: factsInstruction(rx06) });
+        const { timing, patient } = toFacts(factsRaw, { medications: [] });
+        const flags = ["tubeFed", "insulinRequired", "ventDependent", "trach", "dialysis", "elopementRisk", "medicaidPending"].filter((k) => patient[k] === true);
+        const detail = [patient.targetUnit ? `points to ${String(patient.targetUnit).replace(/_/g, " ")}` : "", flags.length ? `${flags.length} special need${flags.length > 1 ? "s" : ""}` : "no special-care flags"].filter(Boolean).join(", ");
+        return { detail, data: { timing, patient } };
+      },
+    },
+    {
+      id: "medications", required: true,
+      run: async () => {
+        medsRaw = await llm.parse({ ...base, label: "medications", schema: MedicationsResultSchema, instruction: medicationsInstruction() });
+        const meds = toMeds(medsRaw);
+        const changes = meds.reduce((n, m) => n + (m.doseChanges?.length ?? 0), 0);
+        return {
+          detail: `${meds.length} medication${meds.length === 1 ? "" : "s"}${changes ? `, ${changes} dose change${changes > 1 ? "s" : ""} to confirm` : ""}`,
+          data: { medications: meds.map((m) => ({ name: m.name, dose: m.dose, schedule: m.schedule, doseChanges: m.doseChanges?.map((d) => ({ listedDose: d.listedDose, noteDose: d.noteDose })) })) },
+        };
+      },
+    },
+    ...categoryJobs(rules).map((job): Task => ({
+      id: `category-${job.cat}`, required: false,
+      run: async () => {
+        const res = await llm.parse({ ...base, label: `category-${job.cat}`, schema: CategoryResultSchema, instruction: categoryInstruction(job.cat, job.rules) });
+        results.push({ job, res });
+        const ids = new Set(job.rules.map((r) => r.id));
+        const answered = res.answers.filter((a) => ids.has(a.ruleId) && a.answered).length;
+        return { detail: `${answered} of ${job.rules.length} question${job.rules.length > 1 ? "s" : ""} answered by the record`, data: { answered, total: job.rules.length } };
+      },
+    })),
+  ];
+
+  await pool(tasks, concurrency, async (t) => {
+    hooks.start?.(t.id);
+    try {
+      hooks.done?.(t.id, await t.run());
+    } catch (e) {
+      hooks.fail?.(t.id, errText(e));
+      if (t.required) throw e;
+      failedCategories.push(t.id.replace("category-", ""));
+    }
+  });
+  if (!factsRaw || !medsRaw) throw new Error("facts or medications call did not finish");
   const facts = toFacts(factsRaw, medsRaw);
 
   const byId = new Map<string, RuleAnswer>();
@@ -255,7 +337,7 @@ export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], 
     const allowed = new Set(job.rules.map((r) => r.id));
     for (const a of res.answers) if (allowed.has(a.ruleId) && !byId.has(a.ruleId)) byId.set(a.ruleId, toAnswer(a));
   }
-  // anything the model skipped is an explicit unanswered, never a silent pass
+  // anything the model skipped (or a failed call) is an explicit unanswered, never a silent pass
   const answers: RuleAnswer[] = [];
   for (const r of rules) {
     if (COMPUTED_RULES.has(r.id)) continue;
@@ -265,5 +347,6 @@ export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], 
   return {
     extraction: { answers, medications: facts.medications, timing: facts.timing, patient: facts.patient, ...(facts.monitoringOrders ? { monitoringOrders: facts.monitoringOrders } : {}) },
     medicationEvidence: medsRaw.medications.map((m) => ({ quote: m.quote, claimedPage: m.page })),
+    failedCategories,
   };
 }

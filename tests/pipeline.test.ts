@@ -129,6 +129,37 @@ describe("pipeline", () => {
     expect(calls[0].pdfBase64).not.toMatch(/\n/);
   });
 
+  it("records every step as done and keeps partial findings", async () => {
+    await createRecord("p4");
+    const rec = await runPipeline({ parseId: "p4", pdf: PDF, llm: fakeLlm });
+    const steps = rec.steps!;
+    expect(steps.map((s) => s.id).slice(0, 4)).toEqual(["pages", "document-map", "facts", "medications"]);
+    expect(steps.at(-1)!.id).toBe("headline");
+    expect(steps.every((s) => s.status === "done")).toBe(true);
+    expect(steps.find((s) => s.id === "medications")!.detail).toBe("1 medication, 1 dose change to confirm");
+    expect(rec.partial).toMatchObject({ pageCount: 4, patient: { targetUnit: "complex_medical" }, categories: { PAY: { answered: 1 } } });
+    expect(rec.warnings).toEqual([]);
+  });
+
+  it("finishes with a warning when one category call fails, and leaves its rules unknown", async () => {
+    await createRecord("p5");
+    const flaky: Llm = { parse: (req) => (req.label === "category-SKN" ? Promise.reject(new Error("boom")) : fakeLlm.parse(req)) };
+    const rec = await runPipeline({ parseId: "p5", pdf: PDF, llm: flaky });
+    expect(rec.status).toBe("complete");
+    expect(rec.steps!.find((s) => s.id === "category-SKN")).toMatchObject({ status: "failed", error: "boom" });
+    expect(rec.warnings).toHaveLength(1);
+    expect(rec.extraction!.answers.find((a) => a.ruleId === "SKN-01")).toMatchObject({ answered: false });
+  });
+
+  it("keeps going without section names when the document map fails", async () => {
+    await createRecord("p6");
+    const noMap: Llm = { parse: (req) => (req.label === "document-map" ? Promise.reject(new Error("nope")) : fakeLlm.parse(req)) };
+    const rec = await runPipeline({ parseId: "p6", pdf: PDF, llm: noMap });
+    expect(rec.status).toBe("complete");
+    expect(rec.documentMap).toEqual([]);
+    expect(rec.warnings![0]).toMatch(/sections/);
+  });
+
   it("persists failures with an error message", async () => {
     await createRecord("p3");
     const bad: Llm = { parse: async () => { throw new Error("Model refused the call"); } };
