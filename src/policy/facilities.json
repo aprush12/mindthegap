@@ -1,0 +1,57 @@
+[
+  {
+    "id": "A",
+    "name": "Bayview Rehabilitation & Nursing",
+    "description": "Mid-size urban SNF, 140 beds, short-stay rehab focus with moderate clinical acuity. No vent or trach unit, no secured unit.",
+    "units": [
+      { "name": "short_stay_rehab", "label": "Short-stay rehab", "beds": 48 },
+      { "name": "skilled_medical", "label": "Skilled medical", "beds": 62 },
+      { "name": "long_term_care", "label": "Long-term care", "beds": 30 }
+    ],
+    "formularyContract": "01/2026 to 12/2026, conservative, exceptions through P&T",
+    "pharmacy": { "type": "contracted_offsite", "cutoff": "18:00", "nextDelivery": "10:00" },
+    "emergencyKit": { "description": "Limited. No insulin analogs, no DOAC, no ARNI", "excludes": ["insulin_analog", "doac", "arni"], "includes": [] },
+    "maxWeightKg": 159,
+    "hasSecuredUnit": false,
+    "hasVentUnit": false,
+    "dialysisChairs": 0,
+    "isolationRoomsTotal": 1
+  },
+  {
+    "id": "B",
+    "name": "Harborview Post-Acute & Pulmonary",
+    "description": "High-acuity post-acute, 200 beds, with a 24-bed ventilator and tracheostomy unit and four in-house dialysis chairs. Stricter about documentation before the patient is in the building.",
+    "units": [
+      { "name": "vent_trach", "label": "Vent and trach", "beds": 24 },
+      { "name": "complex_medical", "label": "Complex medical", "beds": 76 },
+      { "name": "short_stay_rehab", "label": "Short-stay rehab", "beds": 60 },
+      { "name": "long_term_care", "label": "Long-term care", "beds": 40 }
+    ],
+    "formularyContract": "01/2026 to 12/2026, broad, includes ARNI, SGLT2 and DOAC",
+    "pharmacy": { "type": "in_house", "cutoff": "22:00", "nextDelivery": "06:00", "onCallAfterCutoffMinutes": 90 },
+    "emergencyKit": { "description": "Broad. Insulin analogs, DOAC, IV antibiotics", "excludes": [], "includes": ["insulin_analog", "doac", "iv_antibiotic", "oral_analgesic", "antiemetic"] },
+    "maxWeightKg": 227,
+    "hasSecuredUnit": false,
+    "hasVentUnit": true,
+    "dialysisChairs": 4,
+    "isolationRoomsTotal": 3
+  },
+  {
+    "id": "C",
+    "name": "Maple Grove Skilled Nursing",
+    "description": "Smaller suburban facility, 90 beds, long-term care heavy, with a 20-bed secured memory care unit. Limited medical acuity, narrow formulary, pharmacy 40 minutes away with an early cutoff.",
+    "units": [
+      { "name": "secured_memory_care", "label": "Secured memory care", "beds": 20 },
+      { "name": "long_term_care", "label": "Long-term care", "beds": 46 },
+      { "name": "short_stay_rehab", "label": "Short-stay rehab", "beds": 24 }
+    ],
+    "formularyContract": "01/2026 to 12/2026, narrow, exceptions take 72 to 96 hours",
+    "pharmacy": { "type": "contracted_offsite", "cutoff": "16:00", "nextDelivery": "+1d 11:00", "transitMinutes": 40 },
+    "emergencyKit": { "description": "Minimal. Oral analgesics and antiemetics only", "excludes": ["insulin_analog", "doac", "arni", "iv_antibiotic"], "includes": ["oral_analgesic", "antiemetic"] },
+    "maxWeightKg": 136,
+    "hasSecuredUnit": true,
+    "hasVentUnit": false,
+    "dialysisChairs": 0,
+    "isolationRoomsTotal": 0
+  }
+]

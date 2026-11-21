@@ -1,0 +1,26 @@
+{
+  "A": {
+    "asOf": "2026-11-17T20:00:00",
+    "bedsAvailable": { "short_stay_rehab": 3, "skilled_medical": 1, "long_term_care": 0 },
+    "isolationRoomsAvailable": 1,
+    "staffing": { "overnightRN": 1, "overnightLPN": 3, "physicianCoverage": "on call, off site" },
+    "sittersAvailable": 0,
+    "therapy": { "status": "at_capacity", "notes": "At capacity for 48 hours." }
+  },
+  "B": {
+    "asOf": "2026-11-17T20:00:00",
+    "bedsAvailable": { "vent_trach": 2, "complex_medical": 6, "short_stay_rehab": 4, "long_term_care": 1 },
+    "isolationRoomsAvailable": 3,
+    "staffing": { "overnightRN": 4, "overnightLPN": 6, "respiratoryTherapist": true, "npUntil": "23:00", "physicianCoverage": "NP on site until 23:00" },
+    "sittersAvailable": 1,
+    "therapy": { "status": "available", "notes": "Therapy available.", "speechOnSite": true }
+  },
+  "C": {
+    "asOf": "2026-11-17T20:00:00",
+    "bedsAvailable": { "secured_memory_care": 2, "long_term_care": 5, "short_stay_rehab": 1 },
+    "isolationRoomsAvailable": 0,
+    "staffing": { "overnightRN": 1, "rnUntil": "23:00", "overnightLPN": 0, "physicianCoverage": "LPN only after 23:00, RN on call" },
+    "sittersAvailable": 0,
+    "therapy": { "status": "limited", "notes": "PT only; OT and speech by contract on a five-day lead.", "speechOnSite": false, "otSpeechLeadDays": 5 }
+  }
+}
