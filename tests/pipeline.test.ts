@@ -32,7 +32,7 @@ const fakeLlm: Llm = {
         patient: { targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, weightKg: 71.4, ventDependent: false, trach: false, dialysis: false, elopementRisk: false, diagnoses: { heartFailure: true } },
         monitoringOrders: { dailyWeightsOrdered: false, weightEscalationPlan: false, evidence: [{ quote: "heart failure", page: 2 }] },
         medications: [{
-          name: "Furosemide 40 mg", dose: "40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-18T08:00:00", controlled: false, hardCopyPresent: null, correctionScale: null, quote: "heart failure", page: 2,
+          name: "Furosemide 40 mg", dose: "40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-18T08:00:00", controlled: "no", hardCopyPresent: "unknown", correctionScale: "unknown", quote: "heart failure", page: 2,
           doseChanges: [{ listedDose: "40 mg daily", noteDose: "80 mg daily", noteContext: "17 Nov progress note", quoteList: "Furosemide 40 mg", pageList: 3, quoteNote: "Weight 71.4 kg", pageNote: 4 }],
         }],
         rx06: { ruleId: "RX-06", answered: false, fields: [], evidence: [], contradictions: [] },

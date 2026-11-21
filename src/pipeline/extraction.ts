@@ -31,6 +31,7 @@ export const CategoryResultSchema = z.object({ answers: z.array(AnswerSchema) })
 type RawAnswer = z.infer<typeof AnswerSchema>;
 
 const nullable = <T extends z.ZodType>(t: T) => t.nullable();
+const TriState = z.enum(["yes", "no", "unknown"]);
 export const FactsResultSchema = z.object({
   timing: z.object({
     dischargeAt: nullable(z.string()).describe("ISO 8601 local datetime, no timezone suffix, if stated"),
@@ -58,13 +59,14 @@ export const FactsResultSchema = z.object({
   medications: z.array(
     z.object({
       name: z.string(),
-      dose: nullable(z.string()),
-      route: nullable(z.string()),
-      schedule: nullable(z.string()),
-      firstDoseDue: nullable(z.string()).describe("ISO 8601 local datetime of the first dose due at the SNF, only if the record gives times"),
-      controlled: nullable(z.boolean()).describe("true only if the record marks it as a controlled substance"),
-      hardCopyPresent: nullable(z.boolean()).describe("true only if a signed hard copy prescription is documented"),
-      correctionScale: nullable(z.boolean()),
+      // Non-nullable on purpose: the API caps union-typed (nullable) params at 16. "" / "unknown" mean not stated.
+      dose: z.string().describe("as written; empty string if not stated"),
+      route: z.string().describe("as written; empty string if not stated"),
+      schedule: z.string().describe("as written; empty string if not stated"),
+      firstDoseDue: z.string().describe("ISO 8601 local datetime of the first dose due at the SNF, only if the record gives times; empty string otherwise"),
+      controlled: TriState.describe("yes only if the record marks it as a controlled substance; unknown if not stated"),
+      hardCopyPresent: TriState.describe("yes only if a signed hard copy prescription is documented; unknown if not stated"),
+      correctionScale: TriState.describe("unknown if not stated"),
       quote: z.string().describe("verbatim line from the record listing this medication"),
       page: z.number().int(),
       doseChanges: z
@@ -72,7 +74,7 @@ export const FactsResultSchema = z.object({
           z.object({
             listedDose: z.string().describe("dose/frequency as the discharge list gives it"),
             noteDose: z.string().describe("the different dose/frequency a later note, consult or order gives"),
-            noteContext: nullable(z.string()).describe("which note says it, in plain words without clock times (for example '17 Nov cardiology progress note')"),
+            noteContext: z.string().describe("which note says it, in plain words without clock times (for example '17 Nov cardiology progress note'); empty string if unclear"),
             quoteList: z.string().describe("verbatim discharge-list text"),
             pageList: z.number().int(),
             quoteNote: z.string().describe("verbatim text from the final-72-hours note/consult/order"),
@@ -136,7 +138,7 @@ Timing: dischargeAt and arrivalAt as ISO 8601 local datetimes (no timezone), onl
 
 Patient facts: set each field only when the record states it; otherwise null (null means "not stated", never "no"). targetUnit is the SNF unit tier the documented needs point to (vent_trach for ventilator/tracheostomy care, complex_medical for high-acuity medical needs, skilled_medical, short_stay_rehab, long_term_care, memory_care) - null if the record does not support a choice. weightKg is the most recent documented weight in kilograms.
 
-Medications: list every discharge medication exactly as the record names it, with a verbatim quote and page for each. dose/route/schedule only as written. firstDoseDue only when the record gives administration times; null otherwise. controlled and hardCopyPresent only when the record says so; otherwise null.
+Medications: list every discharge medication exactly as the record names it, with a verbatim quote and page for each. dose/route/schedule only as written (empty string if not stated). firstDoseDue only when the record gives administration times; empty string otherwise. controlled, hardCopyPresent and correctionScale are yes/no only when the record says so; otherwise unknown.
 
 Medication reconciliation sweep: after listing the discharge medications, reconcile EACH one against the doses and frequencies stated in the FINAL 72 HOURS of progress notes, consults and orders (the three days before discharge). For every medication where a final-72-hours document gives a different dose or frequency than the discharge list (for example a note saying "increased torsemide to 60 mg daily" while the list says 40 mg), add a doseChanges entry with both verbatim quotes and both pages. Report every divergence. Do NOT decide which one is right and do not adjust the medication's own dose field; the discharge list stays as written. A medication with no divergence gets an empty doseChanges list.
 
@@ -177,10 +179,8 @@ function toFacts(raw: RawFacts): { timing: Timing; patient: Patient; medications
   }
   const medications: Med[] = raw.medications.map((m) => {
     const med: Med = { name: m.name };
-    for (const k of ["dose", "route", "schedule", "firstDoseDue", "controlled", "hardCopyPresent", "correctionScale"] as const) {
-      const v = nn(m[k]);
-      if (v !== undefined) (med as unknown as Record<string, unknown>)[k] = v;
-    }
+    for (const k of ["dose", "route", "schedule", "firstDoseDue"] as const) if (m[k]) med[k] = m[k];
+    for (const k of ["controlled", "hardCopyPresent", "correctionScale"] as const) if (m[k] !== "unknown") med[k] = m[k] === "yes";
     const changes: DoseChange[] = (m.doseChanges ?? []).map((d) => ({
       listedDose: d.listedDose, noteDose: d.noteDose, ...(d.noteContext ? { noteContext: d.noteContext } : {}),
       quoteList: d.quoteList, pageList: d.pageList, quoteNote: d.quoteNote, pageNote: d.pageNote,
