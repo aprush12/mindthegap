@@ -71,8 +71,9 @@ describe("What matters most", () => {
   });
   it("shows a tonight-severity item with its due-by time", () => {
     expect(html).toContain("pri sev-tonight");
-    const due = headline.perFacility.A.topPriorities.find((t) => t.severity === "tonight" && t.dueBy)!.dueBy!;
-    expect(html).toContain(`Due by <b>${fmtTime(due)}</b>`);
+    expect(html).toContain("by tonight 9:00 PM");
+    expect(html).toContain("by tomorrow 8:00 AM");
+    expect(html).toContain("before first meal");
   });
   it("is omitted when there is no headline", () => {
     expect(renderSummary({ ...input, headline: undefined })).not.toContain("What matters most");
@@ -81,7 +82,37 @@ describe("What matters most", () => {
     const t = renderTextTable(input);
     expect(t).toContain("What matters most");
     expect(t).toContain("[TONIGHT]");
-    expect(t).toContain("due by");
+    expect(t).toContain("(by tonight 9:00 PM)");
+    expect(t).toContain("[CAN'T DO HERE]");
+    expect(t).toContain("[BLOCKED]");
+  });
+  it("renders big verdict badges, chips and a collapsed medication timing detail per facility", () => {
+    expect(html).toContain('class="badge b-conditional_accept"');
+    expect(html).toContain("CAN'T DO HERE");
+    expect(html).toContain("<details class=\"meddetail\"><summary>Medication timing detail</summary>");
+    expect((html.match(/<details class="meddetail">/g) ?? []).length).toBe(3);
+    expect(html).not.toContain("<details open");
+    expect(html).toContain("won&#39;t arrive until");
+    expect(html).toContain("Entresto");
+    expect(html.indexOf("Medication timing detail")).toBeGreaterThan(html.indexOf("Blocking items ("));
+  });
+  it("puts the snapshot first and the cards before everything else", () => {
+    expect(html.indexOf(headline.patientSnapshot)).toBeLessThan(html.indexOf('class="card '));
+    expect(headline.patientSnapshot).toBe("71.4 kg, insulin-dependent, 7 discharge medications, wound care needed, referred for complex medical");
+  });
+  it("never shows ISO/UTC timestamps in the page or the text table", () => {
+    const t = renderTextTable(input);
+    for (const out of [html, t]) {
+      expect(out).not.toMatch(/T\d{2}:/);
+      expect(out).not.toMatch(/Z"/);
+      expect(out).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+      expect(out).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    }
+  });
+  it("keeps text-table priority lines short and capped at six per facility", () => {
+    const lines = renderTextTable(input).split("\n").filter((l) => /^\s+\d\. \[/.test(l));
+    expect(lines).toHaveLength(18);
+    for (const l of lines) expect(l.length).toBeLessThanOrEqual(125);
   });
 });
 

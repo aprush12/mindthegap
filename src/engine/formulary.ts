@@ -13,6 +13,9 @@ export interface MedReport {
   payorPA: boolean;
   controlled: boolean;
   firstDoseAtRisk?: boolean;
+  /** First dose due time (ISO) and, for at-risk meds, the earliest the facility can supply it (null = never). Audit detail only. */
+  firstDoseDue?: string;
+  supplyAt?: string | null;
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();

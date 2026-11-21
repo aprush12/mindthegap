@@ -124,7 +124,13 @@ export function evaluateFacility(extraction: Extraction, facilityId: FacilityId,
   const formularyReport: MedReport[] = meds.map((m) => {
     const r = evaluateMed(m, matchAgent(m.name, policy.formulary), facilityId);
     if (r.leadHours > 0) r.resolveBy = resolveBy(r.leadHours, arrival).toISOString();
-    if (m.firstDoseDue) r.firstDoseAtRisk = riskNames.has(m.name);
+    if (m.firstDoseDue) {
+      r.firstDoseAtRisk = riskNames.has(m.name);
+      const due = new Date(m.firstDoseDue);
+      if (!Number.isNaN(due.getTime())) r.firstDoseDue = due.toISOString();
+      const risk = risks.find((x) => x.med === m.name);
+      if (risk) r.supplyAt = risk.supplyAt ? risk.supplyAt.toISOString() : null;
+    }
     return r;
   });
 

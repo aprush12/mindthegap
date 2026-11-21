@@ -3,6 +3,8 @@ import type { Item, RuleState } from "../engine/evaluate.js";
 import { CRITERIA, FACILITY_IDS, type FacilityId } from "../policy/schema.js";
 import type { Evidence } from "../types.js";
 import type { Headline, TopPriority } from "../pipeline/headline.js";
+import type { MedReport } from "../engine/formulary.js";
+import { dueLabel, friendlyWhen, scrubTimes } from "./when.js";
 
 export interface SummaryInput {
   parseId: string;
@@ -59,6 +61,27 @@ function evidenceHtml(ev: Evidence): string {
   return `<li class="ev unverified">${quote} <span class="flag">UNVERIFIED: quote not found in the document text (model cited page ${ev.claimedPage})</span></li>`;
 }
 
+function detailHtml(it: Item): string {
+  if (!it.detail) return "";
+  // The per-medication due/supply dump lives in the collapsed "Medication timing detail" block, not here.
+  const d = it.ruleId === "RX-02" ? "Some first doses may not arrive in time; see Medication timing detail for this facility." : scrubTimes(it.detail);
+  return `<div class="detail">${esc(d)}</div>`;
+}
+
+function medDetailHtml(input: SummaryInput, f: FacilityResult): string {
+  if (!f.formularyReport.length) return "";
+  const arrival = input.arrivalAt ?? input.evaluatedAt;
+  const supply = (r: MedReport) => {
+    if (r.supplyAt === undefined) return r.firstDoseDue ? "in time" : "";
+    if (r.supplyAt === null) return "won't arrive";
+    return `won't arrive until ${friendlyWhen(r.supplyAt, arrival)}`;
+  };
+  const rows = f.formularyReport
+    .map((r) => `<tr class="${r.firstDoseAtRisk ? "risk" : ""}"><td>${esc(r.med)}</td><td>${esc(r.status.replace("_", " "))}</td><td>${r.firstDoseDue ? esc(friendlyWhen(r.firstDoseDue, arrival)) : "not stated"}</td><td>${esc(supply(r))}</td></tr>`)
+    .join("");
+  return `<details class="meddetail"><summary>Medication timing detail</summary><table><thead><tr><th>Medication</th><th>At this facility</th><th>First dose due</th><th>Earliest supply</th></tr></thead><tbody>${rows}</tbody></table></details>`;
+}
+
 function itemHtml(it: Item, showClock: boolean): string {
   const clock = it.resolveBy ? `<div class="resolve">Resolve by <b>${esc(fmtTime(it.resolveBy))}</b>${it.windowHours !== undefined ? ` (${it.windowHours}h window)` : ""}</div>` : "";
   const contra = it.contradictions
@@ -68,7 +91,7 @@ function itemHtml(it: Item, showClock: boolean): string {
     .join("");
   const evs = it.evidence.map(evidenceHtml).join("");
   const body = evs || contra ? `<ul class="evs">${evs}${contra}</ul>` : `<div class="none">No supporting passage in the record.</div>`;
-  return `<div class="item"><div class="q"><span class="rid">${esc(it.ruleId)}</span> ${esc(it.question)} <span class="state s-${it.state}">${STATE_LABEL[it.state]}</span></div>${it.detail ? `<div class="detail">${esc(it.detail)}</div>` : ""}${body}${showClock ? clock : ""}</div>`;
+  return `<div class="item"><div class="q"><span class="rid">${esc(it.ruleId)}</span> ${esc(it.question)} <span class="state s-${it.state}">${STATE_LABEL[it.state]}</span></div>${detailHtml(it)}${body}${showClock ? clock : ""}</div>`;
 }
 
 function facilitySection(input: SummaryInput, f: FacilityResult): string {
@@ -76,24 +99,29 @@ function facilitySection(input: SummaryInput, f: FacilityResult): string {
   const cond = f.conditional.length ? f.conditional.map((i) => itemHtml(i, true)).join("") : `<p class="none">No conditional items.</p>`;
   return `<section class="facility"><h2>${esc(name(input, f.facilityId))} <span class="v v-${f.verdict}">${VERDICT_LABEL[f.verdict]}</span></h2>
 <h3>Blocking items (${f.blocking.length})</h3>${blocks}
-<h3>Items on a clock (${f.conditional.length})</h3>${cond}</section>`;
+<h3>Items on a clock (${f.conditional.length})</h3>${cond}${medDetailHtml(input, f)}</section>`;
 }
 
-const SEV_LABEL: Record<TopPriority["severity"], string> = { tonight: "Tonight", block: "Block", capability: "Capability", clock: "On a clock" };
+const SEV_LABEL: Record<TopPriority["severity"], string> = { tonight: "TONIGHT", block: "BLOCKED", capability: "CAN'T DO HERE", clock: "ON THE CLOCK" };
+const BADGE_LABEL: Record<Verdict, string> = { accept: "ACCEPT", conditional_accept: "CONDITIONAL", blocked: "BLOCKED", decline: "DECLINE" };
 
 function mattersMostHtml(input: SummaryInput): string {
   const h = input.headline;
   if (!h) return "";
+  const arrival = input.arrivalAt ?? input.evaluatedAt;
   const cols = FACILITY_IDS.map((id) => {
     const f = input.result.facilities[id];
     const p = h.perFacility[id];
     const items = p.topPriorities
-      .map((t) => `<li class="pri sev-${t.severity}"><span class="sev">${SEV_LABEL[t.severity]}</span> ${esc(t.text)}${t.dueBy ? ` <span class="due">Due by <b>${esc(fmtTime(t.dueBy))}</b></span>` : ""} <span class="ids">${esc(t.ruleIds.join(", "))}</span></li>`)
+      .map((t) => {
+        const due = dueLabel(t.ruleIds, t.dueBy, arrival);
+        return `<li class="pri sev-${t.severity}"><span class="sev">${SEV_LABEL[t.severity]}</span> <span class="ptext">${esc(t.text)}</span>${due ? ` <span class="due">${esc(due)}</span>` : ""} <span class="ids">${esc(t.ruleIds.join(", "))}</span></li>`;
+      })
       .join("");
-    return `<div class="mm-fac"><h3>${esc(name(input, id))} <span class="v v-${f.verdict}">${VERDICT_LABEL[f.verdict]}</span></h3><p class="hl">${esc(p.headline)}</p><ol>${items}</ol></div>`;
+    return `<div class="card card-${f.verdict}"><div class="badge b-${f.verdict}">${BADGE_LABEL[f.verdict]}</div><h3>${esc(name(input, id))}</h3><p class="hl">${esc(p.headline)}</p><ol>${items}</ol></div>`;
   }).join("");
   const note = h.source === "deterministic" ? "Generated from the checklist without a model." : "Written by a model from the checklist; every item cites checklist rule ids.";
-  return `<section class="matters"><h2>What matters most</h2><p class="snap">${esc(h.patientSnapshot)}</p><div class="mm-grid">${cols}</div><p class="none">${note} The full checklist and evidence follow below.</p></section>`;
+  return `<section class="matters"><h2>What matters most</h2><p class="snap">${esc(h.patientSnapshot)}</p><div class="mm-grid">${cols}</div><p class="none">${note} The full checklist, evidence and medication timing follow below.</p></section>`;
 }
 
 export function renderSummary(input: SummaryInput): string {
@@ -137,17 +165,25 @@ thead th{background:#f3f5f7}tbody th{font-weight:600;width:22%}
 .detail,.none{color:var(--muted)}.evs{margin:4px 0 0;padding-left:18px}.ev q{font-style:italic}.pg{color:var(--muted)}
 .unverified{background:#fff6e5}.flag{color:var(--bad);font-weight:700;font-size:12px}
 .resolve{margin-top:4px;color:var(--warn)}
-.matters{border:2px solid var(--ink);border-radius:8px;padding:12px 16px;margin:0 0 24px}
-.snap{font-size:15px;margin:4px 0 12px}.hl{font-weight:600;margin:0 0 6px}
-.mm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.mm-fac h3{margin-top:4px}.mm-fac ol{margin:0;padding-left:20px}
-.pri{margin:6px 0;padding:2px 0 2px 6px;border-left:3px solid var(--line)}
-.sev{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.due{color:var(--warn);white-space:nowrap}.ids{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
-.sev-tonight{border-left:5px solid var(--bad);background:#fdecea;font-weight:700}.sev-tonight .sev{color:#fff;background:var(--bad);padding:0 5px;border-radius:3px}
-.sev-block,.sev-capability{border-left-color:var(--bad)}.sev-block .sev,.sev-capability .sev{color:var(--bad)}
-.sev-clock{border-left-color:var(--warn)}.sev-clock .sev{color:var(--warn)}
+.matters{margin:0 0 28px}
+.snap{font-size:17px;font-weight:600;margin:4px 0 14px}.hl{font-size:15px;margin:6px 0 10px}
+.mm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.card{border:2px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+.card h3{margin:8px 0 0;font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.card ol{margin:0;padding-left:22px}
+.card-accept{border-color:var(--ok)}.card-conditional_accept{border-color:#e0a000}.card-blocked{border-color:#e8590c}.card-decline{border-color:var(--bad)}
+.badge{display:inline-block;font-size:24px;font-weight:800;letter-spacing:.03em;padding:4px 14px;border-radius:8px;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.b-accept{background:var(--ok)}.b-conditional_accept{background:#f2a900;color:#1a1d21}.b-blocked{background:#e8590c}.b-decline{background:var(--bad)}
+.pri{margin:7px 0;padding:3px 0 3px 6px;border-left:3px solid var(--line)}
+.sev{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;padding:1px 6px;border-radius:3px;color:#fff;vertical-align:1px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.due{color:var(--warn);font-weight:600;white-space:nowrap}.ids{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--muted)}
+.sev-tonight{border-left:6px solid var(--bad);background:#fdecea;font-weight:700;font-size:15px;padding:5px 6px}.sev-tonight .sev{background:var(--bad)}
+.sev-block{border-left-color:#e8590c}.sev-block .sev{background:#e8590c}
+.sev-capability{border-left-color:var(--bad)}.sev-capability .sev{background:#7a1a14}
+.sev-clock{border-left-color:#e0a000;color:#333}.sev-clock .sev{background:#8a6a00}
+.meddetail{margin:14px 0 0}.meddetail summary{cursor:pointer;font-weight:600;color:var(--muted)}.meddetail table{font-size:13px}.meddetail .risk td{background:#fff6e5}
 .criteria td{font-weight:600}
-@media print{body{max-width:none;padding:0}.facility{break-before:page}.item{break-inside:avoid}table{break-inside:avoid}thead{display:table-header-group}}
+@media print{body{max-width:none;padding:0}.card{break-inside:avoid}.facility{break-before:page}.item{break-inside:avoid}table{break-inside:avoid}thead{display:table-header-group}}
 </style></head><body>
 <header><h1>Referral screening summary</h1>
 <div class="meta">Parse <code>${esc(input.parseId)}</code> &middot; Arrival ${esc(fmtTime(input.arrivalAt ?? input.evaluatedAt))}${input.arrivalAt ? "" : " (not stated in the record; wall clock used)"}</div></header>
@@ -174,9 +210,15 @@ export function renderTextTable(input: SummaryInput): string {
   const table = rows.map((r) => r.map((c, i) => c.padEnd(w[i])).join("  ").trimEnd()).join("\n");
   const h = input.headline;
   if (!h) return table;
+  const arrival = input.arrivalAt ?? input.evaluatedAt;
+  const MAX_LINE = 120;
   const blocks = FACILITY_IDS.map((id) => {
     const p = h.perFacility[id];
-    const lines = p.topPriorities.map((t, i) => `  ${i + 1}. [${SEV_LABEL[t.severity].toUpperCase()}] ${t.text}${t.dueBy ? ` (due by ${fmtTime(t.dueBy)})` : ""}`);
+    const lines = p.topPriorities.slice(0, 6).map((t, i) => {
+      const base = `  ${i + 1}. [${SEV_LABEL[t.severity]}] ${t.text}`;
+      const due = dueLabel(t.ruleIds, t.dueBy, arrival);
+      return due && base.length + due.length + 3 <= MAX_LINE ? `${base} (${due})` : base;
+    });
     return [`${name(input, id)}: ${p.headline}`, ...lines].join("\n");
   });
   return `${table}\n\nWhat matters most\n${h.patientSnapshot}\n\n${blocks.join("\n\n")}`;

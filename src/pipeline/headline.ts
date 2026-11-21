@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prioritizeAll, type PriorityCandidate, type PrioritySeverity, type Priorities } from "../engine/priority.js";
-import type { ScreenResult, Verdict } from "../engine/verdict.js";
+import type { FacilityResult, ScreenResult } from "../engine/verdict.js";
 import { FACILITY_IDS, type FacilityId } from "../policy/schema.js";
 import type { Extraction } from "../types.js";
 import type { Llm } from "./anthropic.js";
@@ -38,7 +38,6 @@ export interface Headline {
   perFacility: Record<FacilityId, { headline: string; topPriorities: TopPriority[] }>;
 }
 
-const VERDICT_PLAIN: Record<Verdict, string> = { accept: "Accept", conditional_accept: "Conditional accept", blocked: "Blocked", decline: "Decline" };
 const ts = (iso?: string) => (iso ? new Date(iso).getTime() : Number.POSITIVE_INFINITY);
 
 /** Compact, PHI-minimal digest: the only thing the model sees. */
@@ -60,9 +59,10 @@ export function buildDigest(extraction: Extraction, result: ScreenResult, priori
 
 const SYSTEM = `You write the "what matters most" summary at the top of a skilled nursing facility admissions screen. You receive a JSON digest of one referral: patient facts, medications, and for each of three facilities (A, B, C) a verdict and a ranked list of candidate issues, each with an id, question and evidence quotes.
 Rules:
+- Plain language for an admissions nurse who will glance at this for ten seconds. Each text is ONE line under 100 characters. Never write clock times, dates or ISO timestamps (due times are added separately).
 - Plain language for an admissions nurse. Use only facts present in the digest; add no new clinical claims, doses or recommendations.
 - Do not soften blocks: a blocking or capability issue is stated as blocking.
-- patientSnapshot: 2 to 3 sentences on who this patient is clinically and the care they need (for example insulin management, wound care, anticoagulation, heart failure regimen), drawn only from the digest.
+- patientSnapshot: ONE short line (for example "71.4 kg, insulin-dependent, 7 discharge medications, wound care needed") on who this patient is and the care they need (for example insulin management, wound care, anticoagulation, heart failure regimen), drawn only from the digest.
 - For each facility: headline is one sentence giving the verdict and why. topPriorities has 3 to 6 items, most important first. Each text is imperative and nurse-facing, for example "Obtain the insulin correction scale before the first meal, referenced in the MAR but never received".
 - Every topPriorities item must list in ruleIds the candidate ids (exactly as given) it is based on. Never invent ids. Copy dueBy from the cited candidate when it has one. severity is one of tonight, block, capability, clock and should match the cited candidate.`;
 
@@ -85,39 +85,51 @@ export function validateHeadline(out: HeadlineOutput, sent: Priorities): { headl
   return { headline: { source: "model", droppedUngrounded: dropped, patientSnapshot: out.patientSnapshot.trim(), perFacility }, dropped };
 }
 
-const lead: Record<PrioritySeverity, string> = { tonight: "Tonight: ", block: "Blocker: ", capability: "Facility cannot provide: ", clock: "Resolve: " };
-
 export function deterministicPriorities(cands: PriorityCandidate[]): TopPriority[] {
-  return cands.slice(0, MAX_PRIORITIES).map((c) => ({ text: `${lead[c.severity]}${c.text}`, ruleIds: [c.id], severity: c.severity, ...(c.dueBy ? { dueBy: c.dueBy } : {}) }));
+  return cands.slice(0, MAX_PRIORITIES).map((c) => ({ text: c.text, ruleIds: [c.id], severity: c.severity, ...(c.dueBy ? { dueBy: c.dueBy } : {}) }));
 }
 
+const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** "71.4 kg, insulin-dependent, 7 discharge medications, wound care needed, referred for complex medical" */
 function deterministicSnapshot(ex: Extraction): string {
   const p = ex.patient;
-  const needs = [
-    p.insulinRequired && "insulin",
-    p.tubeFed && "tube feeding",
-    p.ventDependent && "ventilator support",
-    p.trach && "tracheostomy care",
-    p.dialysis && "dialysis",
-  ].filter(Boolean) as string[];
+  const answered = (id: string) => ex.answers.find((a) => a.ruleId === id && a.answered)?.value as { present?: boolean } | undefined;
   const bits = [
-    `${ex.medications.length} discharge medication(s)`,
-    needs.length ? `needs ${needs.join(", ")}` : undefined,
     p.weightKg !== undefined ? `${p.weightKg} kg` : undefined,
+    p.insulinRequired && "insulin-dependent",
+    p.tubeFed && "tube-fed",
+    p.ventDependent && "ventilator-dependent",
+    p.trach && "trach care",
+    p.dialysis && "dialysis",
+    p.elopementRisk && "elopement risk",
+    ex.medications.length ? count(ex.medications.length, "discharge medication") : undefined,
+    answered("SKN-01")?.present === true ? "wound care needed" : undefined,
     p.targetUnit ? `referred for ${String(p.targetUnit).replaceAll("_", " ")}` : undefined,
   ].filter(Boolean);
-  return `Referred patient: ${bits.join("; ")}.`;
+  return bits.length ? bits.join(", ") : "Referred patient (no details extracted)";
+}
+
+function verdictHeadline(f: FacilityResult, cands: PriorityCandidate[]): string {
+  const tonight = cands.filter((c) => c.severity === "tonight").length;
+  const cap = cands.filter((c) => c.severity === "capability").length;
+  const preArrival = f.blocking.filter((i) => i.preArrival).length;
+  switch (f.verdict) {
+    case "accept": return "Can take this patient: nothing outstanding.";
+    case "conditional_accept": {
+      const nowItems = tonight ? `${tonight} ${tonight === 1 ? "item" : "items"} needed tonight` : "";
+      const blockers = f.blocking.length ? `${count(f.blocking.length, "blocker")} to clear` : `${count(f.conditional.length, "item")} to resolve`;
+      return `Can take this patient with conditions: ${blockers}${nowItems ? `, ${nowItems}` : ""}.`;
+    }
+    case "blocked": return `Not yet: ${count(preArrival || f.blocking.length, "item")} must be cleared before the patient travels.`;
+    case "decline": return `Can't take this patient here: ${count(cap || 1, "thing")} this facility can't do.`;
+  }
 }
 
 export function deterministicHeadline(ex: Extraction, result: ScreenResult, priorities: Priorities, droppedUngrounded = 0): Headline {
   const perFacility = {} as Headline["perFacility"];
   for (const id of FACILITY_IDS) {
-    const f = result.facilities[id];
-    const top = priorities[id][0];
-    perFacility[id] = {
-      headline: `${VERDICT_PLAIN[f.verdict]}: ${f.blocking.length} blocking item(s), ${f.conditional.length} on a clock${top ? `; first issue: ${top.text}` : ""}.`,
-      topPriorities: deterministicPriorities(priorities[id]),
-    };
+    perFacility[id] = { headline: verdictHeadline(result.facilities[id], priorities[id]), topPriorities: deterministicPriorities(priorities[id]) };
   }
   return { source: "deterministic", droppedUngrounded, patientSnapshot: deterministicSnapshot(ex), perFacility };
 }

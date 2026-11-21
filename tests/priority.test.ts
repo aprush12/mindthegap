@@ -12,7 +12,7 @@ describe("prioritize (Elena)", () => {
   it("Bayview's top candidates include the three that bite tonight and the three blocks", () => {
     const top = ids("A");
     for (const id of ["ACU-06", "RX-05", "RX-02", "PAY-01", "REG-01", "INF-01"]) expect(top).toContain(id);
-    expect(p.A.find((c) => c.id === "RX-05")!.text).toContain("insulin detemir");
+    expect(p.A.find((c) => c.id === "RX-05")!.text).toBe("Get an interchange order: glargine → detemir (facility doesn't stock glargine)");
     expect(p.A.find((c) => c.id === "RX-02")!.severity).toBe("tonight");
   });
 
@@ -24,6 +24,28 @@ describe("prioritize (Elena)", () => {
     // tonight items are sorted by their due time
     const due = p.A.filter((c) => c.tier === 1).map((c) => new Date(c.dueBy!).getTime());
     expect(due).toEqual([...due].sort((a, b) => a - b));
+  });
+
+  it("writes one-line plain-language text: no ISO timestamps, no rule-question echo, med detail kept out", () => {
+    for (const f of ["A", "B", "C"] as const) {
+      for (const c of p[f]) {
+        expect(c.text).not.toMatch(/\d{4}-\d{2}-\d{2}|T\d{2}:|\dZ\b/);
+        expect(c.text).not.toContain("(not met");
+        expect(c.text).not.toContain("medication(s)");
+        expect(c.text.length).toBeLessThan(110);
+      }
+    }
+    expect(p.A.find((c) => c.id === "RX-02")!.text).toMatch(/^First doses at risk.*past pharmacy cutoff.*worst: Entresto, needs 72-hr exception/);
+    expect(p.A.find((c) => c.id === "ACU-06")!.text).toContain("obtain before first meal");
+    expect(p.A.find((c) => c.id === "RX-06")!.text).toBe("Physician orders are unsigned; chase the hospital for signatures");
+    expect(p.A.find((c) => c.id === "PAY-01")!.text).toBe("Insurance authorization still pending");
+    expect(p.A.find((c) => c.id === "REG-01")!.text).toBe("PASRR screening missing from the packet");
+    expect(p.A.find((c) => c.id === "INF-01")!.text).toBe("No MDRO/isolation status anywhere in the packet");
+  });
+
+  it("states capability gaps for Maple Grove, not the rule question", () => {
+    expect(p.C[0].text).toBe("This facility cannot manage sliding-scale insulin overnight (RN leaves at 11 PM)");
+    expect(p.C[1].text).toMatch(/^Pharmacy can't get first doses here in time/);
   });
 
   it("lists each rule once", () => {
