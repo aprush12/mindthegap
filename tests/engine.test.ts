@@ -6,6 +6,7 @@ import { screen } from "../src/engine/verdict.js";
 import { loadCapacity, loadPolicy } from "../src/policy/index.js";
 import type { Extraction } from "../src/types.js";
 import { elena, NOW } from "./fixtures/elena-mercado.js";
+import { harold, HAROLD_NOW } from "./fixtures/harold-jennings.js";
 
 const policy = loadPolicy();
 const capacity = loadCapacity();
@@ -168,5 +169,54 @@ describe("unknownDecision diverges per facility", () => {
     const ok = withAnswers([{ ruleId: "PAY-01", answered: true, value: { status: "active", approvedDays: 5 }, evidence: [], contradictions: [] }]);
     expect(item(ok, "A", "PAY-01").state).toBe("met");
     expect(item(ok, "B", "PAY-01").state).toBe("not_met");
+  });
+});
+
+describe("golden: Harold Jennings (paperwork complete, capability gap)", () => {
+  const result = screen(harold, policy, capacity, HAROLD_NOW);
+  const { A, B, C } = result.facilities;
+
+  it("Bayview: decline on continuous telemetry only", () => {
+    expect(A.verdict).toBe("decline");
+    expect(ids(A.blocking)).toEqual(["MON-03"]);
+    expect(A.blocking[0].resolvable).toBe("capability");
+  });
+  it("Harborview: conditional accept, zero blocks", () => {
+    expect(B.verdict).toBe("conditional_accept");
+    expect(B.blocking).toHaveLength(0);
+    // B's conditional list: RX-03 (Jardiance payor PA, 24h), THR-01 (weight-bearing only in the PT narrative),
+    // FUP-01 (pending potassium, no named recipient). MON-03 is MET at B (cell requirement is empty: telemetry is
+    // available), not conditional. DCP-02 (bed hold) is a review item, not a conditional.
+    expect(ids(B.conditional)).toEqual(["FUP-01", "RX-03", "THR-01"]);
+    expect(ids(B.review)).toEqual(["DCP-02"]);
+    expect(B.checklist.find((i) => i.ruleId === "MON-03")!.state).toBe("met");
+    expect(B.firstDoseAtRisk).toBe(false);
+  });
+  it("Maple Grove: decline, telemetry plus first dose", () => {
+    expect(C.verdict).toBe("decline");
+    expect(ids(C.blocking)).toEqual(["MON-03", "RX-02"]);
+    expect(C.blocking.find((i) => i.ruleId === "MON-03")!.resolvable).toBe("capability");
+    const rx01 = C.checklist.find((i) => i.ruleId === "RX-01")!;
+    expect(rx01.state).toBe("not_met");
+    expect(rx01.detail).toContain("Jardiance");
+    expect(rx01.detail).toContain("Torsemide");
+    expect(rx01.resolvable).toBe("capability"); // Jardiance is not stocked at any lead time
+  });
+  it("first dose: arrival 14:30 is before both cutoffs, but non-formulary agents still miss the 08:00 dose", () => {
+    // Not a cutoff problem: Bayview's Jardiance is NF 72h, Maple Grove's is not stocked and torsemide is NF 96h.
+    expect(A.firstDoseAtRisk).toBe(true);
+    expect(C.firstDoseAtRisk).toBe(true);
+    expect(B.firstDoseAtRisk).toBe(false);
+  });
+  it("insulin-scoped rule is not applicable; MON-01 is met (written standing order) at all three", () => {
+    for (const r of [A, B, C]) {
+      expect(r.checklist.find((i) => i.ruleId === "MON-02")!.state).toBe("not_applicable");
+      expect(r.checklist.find((i) => i.ruleId === "MON-01")!.state).toBe("met");
+      expect(r.checklist).toHaveLength(43);
+      expect(r.checklist.find((i) => i.ruleId === "PAY-01")!.state).toBe("met");
+      expect(r.checklist.find((i) => i.ruleId === "REG-01")!.state).toBe("met");
+      expect(r.checklist.find((i) => i.ruleId === "INF-01")!.state).toBe("met");
+      expect(r.checklist.find((i) => i.ruleId === "INF-03")!.state).toBe("not_applicable");
+    }
   });
 });
