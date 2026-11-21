@@ -53,7 +53,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
 
 /** Web: demo index. iPhone: straight into the app. */
 export default function Index() {
-  if (Platform.OS !== 'web') return <Redirect href="/m/inbox" />;
+  if (Platform.OS !== 'web') return <Redirect href={'/m/inbox' as never} />;
   return (
     <View style={{ flex: 1, backgroundColor: color.bgCanvas }}>
       <ScrollView contentContainerStyle={{ padding: 32, gap: 32, maxWidth: 1100, width: '100%', alignSelf: 'center' }}>

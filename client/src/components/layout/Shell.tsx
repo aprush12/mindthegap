@@ -58,7 +58,7 @@ export function AppBar({ side }: { side: 'aftercare' | 'hospital' }) {
   return (
     <View accessibilityRole="header" style={{ backgroundColor: color.bgSurface, borderBottomWidth: 1, borderBottomColor: color.borderDefault }}>
       <View style={{ maxWidth: MAX_W, width: '100%', alignSelf: 'center', paddingHorizontal: narrow ? 16 : 32, minHeight: side === 'hospital' ? 64 : 60, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-        <Link href={side === 'aftercare' ? '/aftercare' : '/hospital'} asChild>
+        <Link href={(side === 'aftercare' ? '/aftercare' : '/hospital') as never} asChild>
           <Pressable accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <HandoffMark size={28} />
             <T size={18} weight={700}>

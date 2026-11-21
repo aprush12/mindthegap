@@ -26,7 +26,9 @@ export function PrivacyGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     arm();
-    return () => timer.current && clearTimeout(timer.current);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
