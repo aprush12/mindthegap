@@ -1,5 +1,7 @@
 # mindthegap
 
+![Demo: upload a packet, pick a nursing home, get a screened verdict with follow-up asks](docs/demo.gif)
+
 Mind the Gap screens a roughly 60-page hospital-to-SNF referral packet (PDF) against the acceptance policies of three synthetic skilled nursing facilities: Bayview (A), Harborview (B) and Maple Grove (C). The output is a fixed-length, auditable checklist of 43 rules per facility, a verdict (accept, conditional accept, blocked, decline), and a worklist of items on a clock with computed resolve-by timestamps.
 
 The design splits the work in two. An LLM extraction layer (stage 4) answers 43 facility-agnostic questions about the record once, citing the page and quote for each answer. A deterministic, pure-TypeScript engine then evaluates those answers against each facility's policy and tonight's capacity. The LLM never decides admissibility; the engine does. The source of truth for the rules is [docs/facility-acceptance-spec.md](docs/facility-acceptance-spec.md).
