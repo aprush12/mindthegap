@@ -10,11 +10,13 @@ The design splits the work in two. An LLM extraction layer (stage 4) answers 43 
 
 ```bash
 npm install
-cp .env.example .env     # ANTHROPIC_API_KEY, PORT, ANTHROPIC_MODEL (not used until stage 4)
+cp .env.example .env     # ANTHROPIC_API_KEY, PORT, ANTHROPIC_MODEL (defaults to claude-fable-5-2)
 npm run dev              # http://localhost:3000
 npm test                 # engine + golden test (no network)
 npm run build            # tsc -> dist/
 npm run parse            # stub until stage 4
+npm run make-sample              # synthetic Elena packet -> samples/synthetic-elena-packet.pdf
+npm run make-sample -- harold    # synthetic Harold packet (paperwork complete) -> samples/synthetic-harold-packet.pdf
 ```
 
 Node 20+. Stack: Hono, Zod, TypeScript (strict, ESM), Vitest.

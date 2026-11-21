@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 
-export const DEFAULT_MODEL = "claude-opus-5-5";
+export const DEFAULT_MODEL = "claude-fable-5-2";
 
 export interface LlmRequest<T> {
   /** Identical across every call in a parse so the cached prefix (system + document) is shared. */
@@ -28,7 +28,7 @@ export function createLlm(opts: { apiKey?: string; model?: string; client?: Anth
   const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL;
   return {
     async parse<T>(req: LlmRequest<T>): Promise<T> {
-      // `thinking` omitted on purpose: adaptive by default on this model.
+      // `thinking` is omitted entirely on purpose (Fable 5.2 rejects explicit disabled/budget configs); no prefill, no forced tool_choice.
       // The beta parse surface accepts `betas` + `fallbacks` (verified against SDK 1.12 types).
       const msg = await client.beta.messages.parse({
         model,
