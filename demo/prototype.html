@@ -1,0 +1,380 @@
+<title>Mind the Gap Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: app shell with a top bar and one narrow content column (720px). One decision per screen; detail opens in a side sheet. */
+:root{
+  --bg:#ffffff; --subtle:#f7f8fa; --line:#e7e9ee; --ink:#14181f; --ink-2:#4b5563; --ink-3:#8a93a0;
+  --accent:#2451b7; --accent-soft:#eef2fb;
+  --red:#c2381f; --amber:#a8650a; --plum:#6b4aa0; --green:#2f7d4f;
+  --scrim:rgba(20,24,31,.28); --shadow:0 12px 40px rgba(20,24,31,.14);
+  --f-sans:"Inter",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --subtle:#171b21; --line:#262b33; --ink:#e8ebef; --ink-2:#aab2bd; --ink-3:#7c8592;
+  --accent:#8fb0f0; --accent-soft:#1b2436;
+  --red:#ef8a74; --amber:#e1a650; --plum:#b9a1e6; --green:#74c995;
+  --scrim:rgba(0,0,0,.5); --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --subtle:#171b21; --line:#262b33; --ink:#e8ebef; --ink-2:#aab2bd; --ink-3:#7c8592;
+  --accent:#8fb0f0; --accent-soft:#1b2436;
+  --red:#ef8a74; --amber:#e1a650; --plum:#b9a1e6; --green:#74c995;
+  --scrim:rgba(0,0,0,.5); --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0}
+h1{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.2;text-wrap:balance}
+h2{font-size:13px;font-weight:500;color:var(--ink-3)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+[hidden]{display:none!important}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.bar-in,.main{max-width:760px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.bar-in{height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px;background:none;border:0;padding:0;cursor:pointer}
+.brand svg{width:20px;height:20px}
+.asof{font-size:13px;color:var(--ink-3)}
+
+.main{padding-block:48px 120px}
+.screen{display:grid;gap:40px}
+.head{display:grid;gap:10px}
+.crumb{background:none;border:0;padding:0;color:var(--ink-3);font-size:14px;cursor:pointer;justify-self:start}
+.crumb:hover{color:var(--ink)}
+.sub{color:var(--ink-2);font-size:16px;max-width:56ch}
+
+/* list rows */
+.list{display:grid;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:20px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer;width:100%}
+.row:hover{background:var(--subtle)}
+.row .t{font-weight:500}
+.row .d{color:var(--ink-2);font-size:14px;margin-top:2px}
+.row .r{display:flex;align-items:center;gap:14px;color:var(--ink-3);font-size:14px;white-space:nowrap}
+.chev{width:16px;height:16px;flex:none}
+
+.status{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:500}
+.status::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.s-accept{color:var(--green)} .s-conditional_accept{color:var(--green)}
+.s-blocked{color:var(--amber)} .s-decline{color:var(--ink-3)}
+
+.callout{background:var(--accent-soft);border-radius:10px;padding:20px 22px;display:grid;gap:6px}
+.callout .k{font-size:13px;color:var(--accent);font-weight:500}
+.callout p{font-size:17px}
+
+.note{display:grid;gap:12px}
+.note ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.note li{display:grid;grid-template-columns:8px minmax(0,1fr);gap:12px;align-items:baseline;color:var(--ink-2)}
+.note li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);transform:translateY(-2px)}
+
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--bg)}
+.btn:hover{background:var(--subtle)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.primary:hover{opacity:.9}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+
+/* facility screen */
+.group{display:grid;gap:4px}
+.group h2{display:flex;align-items:center;gap:8px;padding-bottom:8px}
+.group h2 i{width:8px;height:8px;border-radius:50%;display:block}
+.g-tonight i{background:var(--red)} .g-block i{background:var(--amber)} .g-capability i{background:var(--plum)} .g-clock i{background:var(--accent)}
+.group .row{padding:16px 4px}
+.due{font-variant-numeric:tabular-nums}
+.done .t{color:var(--ink-3);text-decoration:line-through}
+.meter{display:grid;gap:8px}
+.meter-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line)}
+.meter-bar span{display:block;height:100%}
+.meter p{font-size:14px;color:var(--ink-2)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--bg);z-index:21;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line)}
+.sheet-head span{font-size:13px;color:var(--ink-3)}
+.x{background:none;border:0;padding:6px;cursor:pointer;color:var(--ink-2);border-radius:6px}
+.x:hover{background:var(--subtle)}
+.sheet-body{padding:28px 24px;overflow-y:auto;display:grid;gap:28px;align-content:start}
+.sheet-body h3{font-size:20px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.field{display:grid;gap:8px}
+.field .k{font-size:13px;color:var(--ink-3)}
+.quote{border-left:2px solid var(--line);padding:2px 0 2px 14px;display:grid;gap:4px}
+.quote q{font-size:15px}
+.quote small{font-family:var(--f-mono);font-size:12px;color:var(--ink-3)}
+.missing{color:var(--amber)}
+.ask{font-size:16px;background:var(--subtle);border-radius:8px;padding:14px 16px}
+.sheet-foot{margin-top:auto;padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
+
+/* call sheet */
+.q{display:grid;grid-template-columns:22px minmax(0,1fr);gap:14px;padding:18px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.q input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent);cursor:pointer}
+.q .t{font-size:15px}
+.q .d{font-size:13px;color:var(--ink-3);margin-top:3px}
+.q.checked .t{color:var(--ink-3);text-decoration:line-through}
+.progress{font-size:14px;color:var(--ink-2)}
+
+/* guide */
+.guide{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:25;width:min(560px,calc(100% - 32px));
+  background:var(--ink);color:var(--bg);border-radius:12px;padding:14px 16px 14px 20px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow)}
+.guide p{font-size:14px;flex:1;min-width:0}
+.guide .step{font-size:12px;opacity:.6;display:block;margin-bottom:2px}
+.guide button{background:var(--bg);color:var(--ink);border:0;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.guide .skip{background:none;color:var(--bg);opacity:.6;padding:8px 6px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top,0px));z-index:30;background:var(--ink);color:var(--bg);font-size:14px;padding:8px 14px;border-radius:8px}
+
+@media (min-width:1000px){body.sheet-open .guide{left:calc((100% - 460px) / 2)}}
+@media (max-width:999px){body.sheet-open.guide-on .sheet{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}}
+@media (max-width:600px){
+  .main{padding-block:32px 140px}
+  h1{font-size:24px}
+  .row .r .hide-sm{display:none}
+  .asof{display:none}
+  .guide{flex-wrap:wrap;gap:10px}
+  .guide p{flex-basis:100%}
+  .guide .skip{margin-left:auto}
+}
+@media (prefers-reduced-motion:no-preference){
+  .sheet{animation:in .2s ease-out}
+  @keyframes in{from{transform:translateX(24px);opacity:.4}}
+}
+</style>
+
+<div class="bar"><div class="bar-in">
+  <button class="brand" id="home" aria-label="Mind the Gap, referrals">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="8" width="7" height="4" rx="1" fill="var(--ink)"/><rect x="12" y="8" width="7" height="4" rx="1" fill="var(--accent)"/></svg>
+    Mind the Gap
+  </button>
+  <span class="asof">Bed and staffing capacity as of 17 Nov, 8:00 PM</span>
+</div></div>
+
+<main class="main" id="app"></main>
+<div id="layer"></div>
+<div class="guide" id="guide"></div>
+
+<script>
+const DATA = {"elena":{"snapshot":"71.4 kg, insulin-dependent, 7 discharge medications, wound care needed, referred for complex medical","timing":{"dischargeAt":"2026-11-17T18:42:00","arrivalAt":"2026-11-17T20:40:00"},"meds":["Sacubitril/valsartan (Entresto) 24/26 mg","Insulin glargine 20 units","Apixaban 2.5 mg","Furosemide 40 mg","Carvedilol 6.25 mg","Atorvastatin 40 mg","Amiodarone 200 mg"],"gaps":[{"id":"PKT-HF-WEIGHTS","text":"Heart failure, but no daily-weights order in the packet","followUpAsk":"Send the signed physician order for daily weights","evidence":[{"quote":"Daily weights for heart failure","page":12}]},{"id":"PKT-HF-PLAN","text":"Heart failure, but no weight-gain call parameters in the packet","followUpAsk":"Send the weight-gain escalation parameters: how much gain in a day or a week means call the physician","evidence":[{"quote":"Daily weights for heart failure","page":12}]}],"fac":{"A":{"verdict":"conditional_accept","headline":"Can take this patient with conditions: 3 blockers to clear, 7 items needed tonight.","blocking":3,"conditional":17,"review":5,"states":{"not_met":8,"met":14,"unknown":17,"not_applicable":4},"priorities":[{"sev":"tonight","text":"First doses at risk: arrival past pharmacy cutoff (7 meds; worst: Entresto, needs 72-hr exception)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the hospital how first doses of 7 meds will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get an interchange order: glargine → detemir (facility doesn't stock glargine)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the prescriber for an interchange order: glargine → detemir","ids":["RX-05"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Entresto isn't on the formulary (needs 72-hr exception)","due":"2026-11-18T08:00:00.000Z","ask":"Ask the prescriber for a formulary alternative to Entresto","ids":["RX-01"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get payor prior authorization for Apixaban","due":"2026-11-18T08:00:00.000Z","ask":"Ask the hospital to start payor prior authorization for Apixaban","ids":["RX-03"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Insulin correction scale is referenced in the MAR but was never sent; obtain before first meal","due":"2026-11-18T08:40:00.000Z","ask":"Send the insulin correction scale from the MAR before the first meal","ids":["ACU-06"],"ev":[{"q":"Correct per sliding scale insulin orders (scale not attached)","p":17}],"state":"not_met"},{"sev":"tonight","text":"Physician orders are unsigned; chase the hospital for signatures","due":"2026-11-18T08:40:00.000Z","ask":"Send the signed physician order set","ids":["RX-06"],"ev":[],"state":"unknown"}]},"B":{"verdict":"blocked","headline":"Not yet: 1 item must be cleared before the patient travels.","blocking":4,"conditional":13,"review":5,"states":{"not_met":5,"met":17,"unknown":17,"not_applicable":4},"priorities":[{"sev":"tonight","text":"Wound details incomplete; need stage, size, site and treatment order","due":"2026-11-18T08:40:00.000Z","ask":"Send each wound's stage, size, site and treatment order","ids":["SKN-01"],"ev":[{"q":"Stage 2 sacral pressure injury","p":9}],"state":"not_met"},{"sev":"tonight","text":"Wounds not documented as present on admission","due":"2026-11-18T08:40:00.000Z","ask":"Confirm which wounds were present on admission","ids":["SKN-02"],"ev":[],"state":"unknown"},{"sev":"block","text":"Physician orders are unsigned; chase the hospital for signatures","ask":"Send the signed physician order set","ids":["RX-06"],"ev":[],"state":"unknown"},{"sev":"block","text":"Insurance authorization still pending","ask":"Confirm when the insurance authorization will be approved and for how many days","ids":["PAY-01"],"ev":[{"q":"Authorization pending with payor","p":4}],"state":"not_met"},{"sev":"block","text":"PASRR screening missing from the packet","ask":"Fax the PASRR Level I determination","ids":["REG-01"],"ev":[],"state":"unknown"},{"sev":"block","text":"No MDRO/isolation status anywhere in the packet","ask":"Send the MDRO and isolation status, or confirm there is none","ids":["INF-01"],"ev":[],"state":"unknown"}]},"C":{"verdict":"decline","headline":"Can't take this patient here: 2 things this facility can't do.","blocking":7,"conditional":15,"review":1,"states":{"not_met":8,"met":14,"unknown":15,"not_applicable":6},"priorities":[{"sev":"capability","text":"This facility cannot manage sliding-scale insulin overnight (RN leaves at 11 PM)","ask":"Ask the prescriber whether a simpler insulin plan can replace overnight sliding scale","ids":["ACU-06"],"ev":[{"q":"Correct per sliding scale insulin orders (scale not attached)","p":17}],"state":"not_met"},{"sev":"capability","text":"Pharmacy can't get first doses here in time (past 4 PM cutoff; 7 meds; worst: Entresto, not stocked)","ask":"Ask the prescriber how first doses will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get an interchange order: glargine → NPH insulin (facility doesn't stock glargine)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the prescriber for an interchange order: glargine → NPH insulin","ids":["RX-05"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"2 meds aren't on the formulary (worst: Entresto, not stocked)","due":"2026-11-18T08:00:00.000Z","ask":"Ask the prescriber for a formulary alternative to Entresto and 1 other med","ids":["RX-01"],"ev":[],"state":"not_met"},{"sev":"block","text":"Insurance authorization still pending","ask":"Confirm when the insurance authorization will be approved and for how many days","ids":["PAY-01"],"ev":[{"q":"Authorization pending with payor","p":4}],"state":"not_met"},{"sev":"block","text":"No responsible party named; needed at signing","ask":"Give us the name and phone number of the responsible party","ids":["PAY-04"],"ev":[],"state":"unknown"}]}}},"harold":{"snapshot":"95 kg, 8 discharge medications, referred for complex medical","timing":{"dischargeAt":"2026-11-18T11:30:00","arrivalAt":"2026-11-18T14:30:00"},"meds":["Torsemide 40 mg","Empagliflozin (Jardiance) 10 mg","Spironolactone 25 mg","Carvedilol 12.5 mg","Amiodarone 200 mg","Aspirin 81 mg","Atorvastatin 40 mg","Senna 8.6 mg"],"gaps":[],"fac":{"A":{"verdict":"decline","headline":"Can't take this patient here: 1 thing this facility can't do.","blocking":1,"conditional":5,"review":1,"states":{"met":31,"not_applicable":5,"not_met":6,"unknown":1},"priorities":[{"sev":"capability","text":"This facility cannot provide the monitoring required","ask":"Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed","ids":["MON-03"],"ev":[{"q":"CONTINUOUS CARDIAC TELEMETRY ordered for 7 days from arrival","p":25}],"state":"not_met"},{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"First doses at risk: supply arrives after they're due (1 med; worst: Jardiance, needs 72-hr exception)","due":"2026-11-19T08:00:00.000Z","ask":"Ask the hospital how first doses of 1 med will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-19T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-19T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"Get payor prior authorization for Jardiance","due":"2026-11-20T14:30:00.000Z","ask":"Ask the hospital to start payor prior authorization for Jardiance","ids":["RX-03"],"ev":[],"state":"not_met"}]},"B":{"verdict":"conditional_accept","headline":"Can take this patient with conditions: 3 items to resolve, 1 item needed tonight.","blocking":0,"conditional":3,"review":1,"states":{"met":34,"not_applicable":5,"not_met":3,"unknown":1},"priorities":[{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"Get payor prior authorization for Jardiance","due":"2026-11-19T14:30:00.000Z","ask":"Ask the hospital to start payor prior authorization for Jardiance","ids":["RX-03"],"ev":[],"state":"not_met"},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-19T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-19T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"Bed-hold policy not yet acknowledged","ask":"Confirm the family was told the bed-hold policy","ids":["DCP-02"],"ev":[],"state":"unknown"}]},"C":{"verdict":"decline","headline":"Can't take this patient here: 2 things this facility can't do.","blocking":2,"conditional":3,"review":1,"states":{"met":30,"not_applicable":7,"not_met":5,"unknown":1},"priorities":[{"sev":"capability","text":"Pharmacy can't get first doses here in time (2 meds; worst: Jardiance, not stocked)","ask":"Ask the prescriber how first doses will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"capability","text":"This facility cannot provide the monitoring required","ask":"Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed","ids":["MON-03"],"ev":[{"q":"CONTINUOUS CARDIAC TELEMETRY ordered for 7 days from arrival","p":25}],"state":"not_met"},{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-20T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-20T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"2 meds aren't on the formulary (worst: Jardiance, not stocked)","due":"2026-11-22T14:30:00.000Z","ask":"Ask the prescriber for a formulary alternative to Jardiance and 1 other med","ids":["RX-01"],"ev":[],"state":"not_met"}]}}}};
+const FAC = {
+  A:{name:"Bayview Rehabilitation & Nursing", short:"Bayview"},
+  B:{name:"Harborview Post-Acute & Pulmonary", short:"Harborview"},
+  C:{name:"Maple Grove Skilled Nursing", short:"Maple Grove"}
+};
+const CASES = {
+  elena:{name:"Elena Mercado", reason:"Heart failure, insulin-dependent diabetes, pressure injury", age:"71.4 kg · 7 medications"},
+  harold:{name:"Harold Jennings", reason:"Heart failure with atrial fibrillation, telemetry ordered", age:"95 kg · 8 medications"}
+};
+const VERDICT = {accept:"Can admit", conditional_accept:"Can admit with conditions", blocked:"Not until paperwork arrives", decline:"Can't admit"};
+const RANK = {accept:0, conditional_accept:1, blocked:2, decline:3};
+const GROUPS = [
+  ["capability","This facility can't provide"],
+  ["tonight","Needed tonight"],
+  ["block","Needed before admission"],
+  ["clock","Due within a day"]
+];
+
+const state = {screen:"inbox", c:null, f:null, resolved:new Set(), asked:new Set(), guide:0, guideOff:false};
+const app = document.getElementById("app"), layer = document.getElementById("layer");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chev = `<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function wall(iso){ const m=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(iso||""); return m?{date:m[1],h:+m[2],min:+m[3]}:null; }
+function clock(t){ return `${t.h%12||12}:${String(t.min).padStart(2,"0")} ${t.h<12?"AM":"PM"}`; }
+function when(iso, ref){
+  const t=wall(iso), r=wall(ref); if(!t) return "";
+  if(t.date===r.date) return clock(t)+(t.h>=17?" tonight":" today");
+  return clock(t)+" tomorrow";
+}
+const best = c => ["A","B","C"].sort((a,b)=>RANK[DATA[c].fac[a].verdict]-RANK[DATA[c].fac[b].verdict])[0];
+const isDose = p => p.ids.some(i=>i.startsWith("MEDREC:"));
+const keyOf = (c,f,i) => `${c}|${f}|${i}`;
+
+/* ---------- screens ---------- */
+function inbox(){
+  const rows = ["elena","harold"].map(c=>{
+    const b = best(c), arr = wall(DATA[c].timing.arrivalAt);
+    return `<button class="row" data-go="case" data-c="${c}">
+      <div><div class="t">${CASES[c].name}</div><div class="d">${CASES[c].reason}</div></div>
+      <div class="r"><span class="hide-sm">Arrives ${clock(arr)}</span>${chev}</div>
+    </button>`;
+  }).join("");
+  return `<div class="screen">
+    <div class="head"><h1>Referrals</h1><p class="sub">Each packet has been screened against your three facilities. Open one to see where the patient can go and what's missing.</p></div>
+    <div class="list">${rows}</div>
+  </div>`;
+}
+
+function caseScreen(){
+  const c = state.c, d = DATA[c], b = best(c), bf = d.fac[b];
+  const rows = ["A","B","C"].sort((x,y)=>RANK[d.fac[x].verdict]-RANK[d.fac[y].verdict]).map(f=>{
+    const x = d.fac[f];
+    return `<button class="row" data-go="fac" data-f="${f}">
+      <div><div class="t">${FAC[f].name}</div><div style="margin-top:4px"><span class="status s-${x.verdict}">${VERDICT[x.verdict]}</span></div></div>
+      <div class="r">${chev}</div>
+    </button>`;
+  }).join("");
+  const gaps = d.gaps?.length ? `<div class="note"><h2>Missing from the packet, whichever facility you choose</h2><ul>${d.gaps.map(g=>`<li>${esc(g.text)}</li>`).join("")}</ul></div>` : "";
+  const reco = bf.verdict==="decline"
+    ? `None of your facilities can take ${CASES[c].name.split(" ")[0]} tonight.`
+    : `${FAC[b].short} is the best fit. ${bf.verdict==="blocked"?"It can admit once the paperwork arrives.":"It can admit tonight with conditions."}`;
+  return `<div class="screen">
+    <div class="head">
+      <button class="crumb" data-go="inbox">← Referrals</button>
+      <h1>${CASES[c].name}</h1>
+      <p class="sub">${CASES[c].reason} · ${CASES[c].age}</p>
+    </div>
+    <div class="callout"><span class="k">Recommendation</span><p>${reco}</p></div>
+    <div class="group"><h2>Facilities</h2><div class="list">${rows}</div></div>
+    ${gaps}
+    <div class="actions"><button class="btn primary" data-go="calls">Open call sheet</button></div>
+  </div>`;
+}
+
+function facScreen(){
+  const c=state.c, f=state.f, d=DATA[c], x=d.fac[f];
+  const total = Object.values(x.states).reduce((a,b)=>a+b,0);
+  const met = x.states.met||0, unk = x.states.unknown||0, nm = x.states.not_met||0;
+  const groups = GROUPS.map(([sev,label])=>{
+    const items = x.priorities.map((p,i)=>({p,i})).filter(({p})=>p.sev===sev);
+    if(!items.length) return "";
+    return `<div class="group g-${sev}"><h2><i></i>${label}</h2><div class="list">${items.map(({p,i})=>{
+      const done = state.resolved.has(keyOf(c,f,i));
+      return `<button class="row${done?" done":""}" data-open="${i}">
+        <div><div class="t">${esc(p.text)}</div>${p.due?`<div class="d due">By ${when(p.due,d.timing.arrivalAt)}</div>`:""}</div>
+        <div class="r">${done?"Resolved":""}${chev}</div>
+      </button>`;}).join("")}</div></div>`;
+  }).join("");
+  return `<div class="screen">
+    <div class="head">
+      <button class="crumb" data-go="case">← ${CASES[c].name}</button>
+      <h1>${FAC[f].name}</h1>
+      <span class="status s-${x.verdict}">${VERDICT[x.verdict]}</span>
+    </div>
+    <div class="meter">
+      <div class="meter-bar" aria-hidden="true">
+        <span style="width:${met/total*100}%;background:var(--green)"></span>
+        <span style="width:${nm/total*100}%;background:var(--red)"></span>
+        <span style="width:${unk/total*100}%;background:var(--amber)"></span>
+      </div>
+      <p>${met} of ${total} admission rules met. ${nm} not met, ${unk} not answered anywhere in the packet.</p>
+    </div>
+    ${groups}
+  </div>`;
+}
+
+function callsScreen(){
+  const c=state.c, d=DATA[c];
+  const map=new Map(), order={tonight:0,block:1,capability:2,clock:3,gap:4};
+  for(const f of ["A","B","C"]) d.fac[f].priorities.forEach(p=>{
+    if(!p.ask) return;
+    if(!map.has(p.ask)) map.set(p.ask,{ask:p.ask,sev:isDose(p)?"tonight":p.sev,dose:isDose(p),facs:new Set()});
+    const e=map.get(p.ask); e.facs.add(f); if(order[p.sev]<order[e.sev]) e.sev=p.sev;
+  });
+  (d.gaps||[]).forEach(g=>map.set(g.followUpAsk,{ask:g.followUpAsk,sev:"gap",facs:new Set(["A","B","C"])}));
+  const qs=[...map.values()].sort((a,b)=>(b.dose-a.dose)||order[a.sev]-order[b.sev]);
+  const n=qs.filter(q=>state.asked.has(c+q.ask)).length;
+  return `<div class="screen">
+    <div class="head">
+      <button class="crumb" data-go="case">← ${CASES[c].name}</button>
+      <h1>Call sheet</h1>
+      <p class="sub">Everything to ask the discharging hospital, across all three facilities, most urgent first. One call instead of three.</p>
+    </div>
+    <div>
+      <p class="progress" id="prog">${n} of ${qs.length} answered</p>
+      <div class="list" style="margin-top:12px">${qs.map((q,i)=>{
+        const on=state.asked.has(c+q.ask);
+        const who=q.facs.size===3?"All facilities":[...q.facs].map(f=>FAC[f].short).join(", ");
+        return `<label class="q${on?" checked":""}"><input type="checkbox" id="q-${c}-${i}" data-ask="${esc(q.ask)}"${on?" checked":""}>
+          <div><div class="t">${esc(q.ask)}</div><div class="d">${q.dose?"Dose conflict · ":q.sev==="gap"?"Missing from packet · ":""}${who}</div></div></label>`;
+      }).join("")}</div>
+    </div>
+    <div class="actions"><button class="btn" id="copy">Copy questions</button></div>
+  </div>`;
+}
+
+/* ---------- detail sheet ---------- */
+function openSheet(i){
+  const c=state.c, f=state.f, d=DATA[c], p=d.fac[f].priorities[i], k=keyOf(c,f,i);
+  const done=state.resolved.has(k);
+  const ev = p.ev.length
+    ? p.ev.map((e,j)=>`<div class="quote"><q>${esc(e.q)}</q><small>${isDose(p)?(j===0?"Discharge medication list":"Progress note")+", ":""}page ${e.p}</small></div>`).join("")
+    : p.state==="unknown"
+      ? `<p class="missing">Not found anywhere in the packet. Missing information is never treated as met.</p>`
+      : `<p>Worked out from the medication list, this facility's formulary and its pharmacy delivery schedule.</p>`;
+  layer.innerHTML = `<div class="scrim" data-close></div>
+    <aside class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+      <div class="sheet-head"><span>${FAC[f].short} · ${esc(p.ids.join(", "))}</span><button class="x" data-close aria-label="Close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+      <div class="sheet-body">
+        <h3 id="sh-t">${esc(p.text)}</h3>
+        ${p.due?`<div class="field"><span class="k">Resolve by</span><span class="due">${when(p.due,d.timing.arrivalAt)}</span></div>`:""}
+        <div class="field"><span class="k">${isDose(p)?"The two sources disagree":"Where this comes from"}</span>${ev}</div>
+        ${p.ask?`<div class="field"><span class="k">Ask the hospital</span><div class="ask">${esc(p.ask)}</div></div>`:""}
+      </div>
+      <div class="sheet-foot">
+        <button class="btn primary" id="resolve">${done?"Mark as open":"Mark as resolved"}</button>
+        <button class="btn" data-close>Close</button>
+      </div>
+    </aside>`;
+  document.body.classList.add("sheet-open");
+  layer.querySelector(".x").focus();
+  document.getElementById("resolve").onclick=()=>{
+    done?state.resolved.delete(k):state.resolved.add(k);
+    closeSheet(); render(); toast(done?"Marked as open":"Marked as resolved");
+  };
+}
+function closeSheet(){ layer.innerHTML=""; document.body.classList.remove("sheet-open"); }
+function toast(t){ const el=document.createElement("div"); el.className="toast"; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),1600); }
+
+/* ---------- guided walkthrough ---------- */
+const TOUR = [
+  {text:"Two referral packets came in tonight. Each one is about 60 pages.", act:()=>go("inbox"), btn:"Open Elena"},
+  {text:"Same patient, three answers. Bayview can take her tonight; Harborview needs paperwork first; Maple Grove can't manage her insulin overnight.", act:()=>go("case",{c:"elena"}), btn:"Open Harborview"},
+  {text:"Nothing in the packet mentions PASRR. The screen calls that out instead of assuming it's fine.", act:()=>{go("fac",{c:"elena",f:"B"}); const i=DATA.elena.fac.B.priorities.findIndex(p=>p.ids.includes("REG-01")); openSheet(i);}, btn:"Next: Harold"},
+  {text:"Harold's paperwork is complete, but the discharge list and the cardiology note disagree on his torsemide dose.", act:()=>{go("fac",{c:"harold",f:"B"}); const i=DATA.harold.fac.B.priorities.findIndex(isDose); openSheet(i);}, btn:"See the call sheet"},
+  {text:"Every open item becomes one question for the hospital. One call covers all three facilities.", act:()=>go("calls",{c:"harold"}), btn:"Finish"}
+];
+function renderGuide(){
+  const g=document.getElementById("guide");
+  document.body.classList.toggle("guide-on", !state.guideOff);
+  if(state.guideOff){ g.hidden=true; return; }
+  const s=TOUR[state.guide];
+  g.hidden=false;
+  g.innerHTML=`<p><span class="step">Walkthrough ${state.guide+1} of ${TOUR.length}</span>${s.text}</p>
+    <button class="skip" id="g-skip">Hide</button><button id="g-next">${s.btn}</button>`;
+  document.getElementById("g-next").onclick=()=>{
+    if(state.guide===TOUR.length-1){ state.guideOff=true; renderGuide(); return; }
+    state.guide++; TOUR[state.guide].act(); renderGuide();
+  };
+  document.getElementById("g-skip").onclick=()=>{ state.guideOff=true; renderGuide(); };
+}
+
+/* ---------- routing ---------- */
+function go(screen, o={}){ closeSheet(); Object.assign(state,{screen},o); render(); window.scrollTo(0,0); }
+function render(){
+  app.innerHTML = {inbox, case:caseScreen, fac:facScreen, calls:callsScreen}[state.screen]();
+}
+app.addEventListener("click", e=>{
+  const t=e.target.closest("[data-go],[data-open]"); if(!t) return;
+  if(t.dataset.open!==undefined) return openSheet(+t.dataset.open);
+  go(t.dataset.go, {c:t.dataset.c??state.c, f:t.dataset.f??state.f});
+});
+app.addEventListener("change", e=>{
+  const cb=e.target.closest("input[data-ask]"); if(!cb) return;
+  const k=state.c+cb.dataset.ask; cb.checked?state.asked.add(k):state.asked.delete(k);
+  cb.closest(".q").classList.toggle("checked",cb.checked);
+  const all=app.querySelectorAll("input[data-ask]"), n=[...all].filter(x=>x.checked).length;
+  document.getElementById("prog").textContent=`${n} of ${all.length} answered`;
+});
+app.addEventListener("click", e=>{
+  if(e.target.id!=="copy") return;
+  const text=[...app.querySelectorAll("input[data-ask]")].map((x,i)=>`${i+1}. ${x.dataset.ask}`).join("\n");
+  navigator.clipboard?.writeText(text).then(()=>toast("Questions copied"),()=>toast("Copy isn't available here"));
+});
+layer.addEventListener("click", e=>{ if(e.target.closest("[data-close]")) closeSheet(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSheet(); });
+document.getElementById("home").onclick=()=>go("inbox");
+
+render(); renderGuide();
+</script>
