@@ -255,12 +255,12 @@ function Review({ draft, setDraft, onDiscard, onSend, error }: { draft: VoiceDra
               <T size={19} lineHeight={24} weight={700}>
                 {pt.name}
               </T>
-              <T size={17} lineHeight={24}>
-                <T size={17} color={color.textTertiary}>DOB</T> {pt.dob}
+              <T size={17} lineHeight={24} color={color.textSecondary}>
+                DOB <T size={17} weight={600}>{pt.dob}</T>
               </T>
             </View>
-            <Button variant="secondary" size="lg" fontSize={15} label="Change patient" onPress={() => setPicking((p) => !p)} style={{ height: 44, paddingHorizontal: 12, borderRadius: 10 }} />
           </View>
+          <Button variant="secondary" size="lg" fontSize={15} icon="users" label={picking ? 'Keep this patient' : 'Change patient'} onPress={() => setPicking((p) => !p)} style={{ height: 44, paddingHorizontal: 12, borderRadius: 10 }} />
           {picking ? (
             <View style={{ borderWidth: 1, borderColor: color.borderDefault, borderRadius: 10, overflow: 'hidden' }}>
               {patients.map((p) => (
