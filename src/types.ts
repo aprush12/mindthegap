@@ -22,6 +22,9 @@ export interface Contradiction {
   quoteB: string;
   pageB: number;
   note: string;
+  /** Set by the anchoring step: whether each quote was found in the document text. */
+  verifiedA?: boolean;
+  verifiedB?: boolean;
 }
 
 export interface RuleAnswer {

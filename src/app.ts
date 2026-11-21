@@ -2,38 +2,94 @@ import { readFile, writeFile } from "node:fs/promises";
 import { Hono } from "hono";
 import facilitiesJson from "./policy/facilities.json" with { type: "json" };
 import { CapacitySchema, FacilitiesSchema, FacilityIdSchema, CapacitySnapshotSchema } from "./policy/schema.js";
+import { createLlm, type Llm } from "./pipeline/anthropic.js";
+import type { Page } from "./pipeline/extract-text.js";
+import { createRecord, newParseId, runPipeline, type ParseRecord } from "./pipeline/run.js";
+import { loadFile, saveFile } from "./store.js";
 
 const facilities = FacilitiesSchema.parse(facilitiesJson);
 const CAPACITY_PATH = new URL("./capacity/snapshot.json", import.meta.url);
 
 const readCapacity = async () => CapacitySnapshotSchema.parse(JSON.parse(await readFile(CAPACITY_PATH, "utf8")));
 
-export const app = new Hono();
+export interface AppDeps {
+  /** LLM factory, called per parse so a missing API key fails that parse, not the server. */
+  llm?: () => Llm;
+  /** Receives each background pipeline run (tests await it). */
+  onRun?: (run: Promise<unknown>) => void;
+}
 
-app.get("/health", (c) => c.json({ ok: true }));
+const validId = (id: string) => /^[\w-]+$/.test(id);
+const isPdf = (b: Uint8Array) => b.length > 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
 
-const notYet = (c: { json: (b: unknown, s: 501) => Response }) => c.json({ error: "pipeline lands in a later stage" }, 501);
-app.post("/api/parses", notYet);
-app.get("/api/parses/:id", notYet);
-app.get("/api/parses/:id/summary", notYet);
-app.get("/api/parses/:id/document/:page", notYet);
+export function createApp(deps: AppDeps = {}) {
+  const app = new Hono();
+  const makeLlm = deps.llm ?? (() => createLlm());
 
-app.get("/api/facilities", (c) => c.json(facilities));
+  app.get("/health", (c) => c.json({ ok: true }));
 
-app.get("/api/facilities/:id", async (c) => {
-  const id = FacilityIdSchema.safeParse(c.req.param("id"));
-  if (!id.success) return c.json({ error: "unknown facility" }, 404);
-  const capacity = (await readCapacity())[id.data];
-  return c.json({ ...facilities.find((f) => f.id === id.data)!, capacity });
-});
+  app.post("/api/parses", async (c) => {
+    const body = await c.req.parseBody().catch(() => null);
+    const file = body?.file;
+    if (!(file instanceof File)) return c.json({ error: "multipart field \"file\" (a PDF) is required" }, 400);
+    const pdf = new Uint8Array(await file.arrayBuffer());
+    if (!isPdf(pdf)) return c.json({ error: "file is not a PDF" }, 400);
+    const parseId = newParseId();
+    await saveFile(parseId, "packet.pdf", pdf);
+    const rec = await createRecord(parseId);
+    const run = (async () => {
+      let llm: Llm;
+      try {
+        llm = makeLlm();
+      } catch (e) {
+        await saveFile(parseId, "result.json", { ...rec, status: "failed", completedAt: new Date().toISOString(), error: e instanceof Error ? e.message : String(e) } satisfies ParseRecord);
+        return;
+      }
+      await runPipeline({ parseId, pdf, llm });
+    })();
+    deps.onRun?.(run);
+    return c.json({ parseId }, 202);
+  });
 
-app.put("/api/facilities/:id/capacity", async (c) => {
-  const id = FacilityIdSchema.safeParse(c.req.param("id"));
-  if (!id.success) return c.json({ error: "unknown facility" }, 404);
-  const body = CapacitySchema.safeParse(await c.req.json().catch(() => null));
-  if (!body.success) return c.json({ error: "invalid capacity", issues: body.error.issues }, 400);
-  const snapshot = await readCapacity();
-  snapshot[id.data] = body.data;
-  await writeFile(CAPACITY_PATH, JSON.stringify(snapshot, null, 2) + "\n");
-  return c.json(body.data);
-});
+  app.get("/api/parses/:id", async (c) => {
+    const id = c.req.param("id");
+    const rec = validId(id) ? await loadFile<ParseRecord>(id, "result.json") : undefined;
+    return rec ? c.json(rec) : c.json({ error: "unknown parse" }, 404);
+  });
+
+  app.get("/api/parses/:id/summary", (c) => c.json({ error: "summary lands in stage 5" }, 501));
+
+  app.get("/api/parses/:id/document/:page", async (c) => {
+    const id = c.req.param("id");
+    const n = Number(c.req.param("page"));
+    const pages = validId(id) ? await loadFile<Page[]>(id, "pages.json") : undefined;
+    if (!pages) return c.json({ error: "no document text for this parse" }, 404);
+    const page = Number.isInteger(n) ? pages.find((p) => p.pageNumber === n) : undefined;
+    // raw text, so evidence startOffset/endOffset index straight into it
+    return page ? c.json({ pageNumber: page.pageNumber, pageCount: pages.length, text: page.raw }) : c.json({ error: "page out of range" }, 404);
+  });
+
+  app.get("/api/facilities", (c) => c.json(facilities));
+
+  app.get("/api/facilities/:id", async (c) => {
+    const id = FacilityIdSchema.safeParse(c.req.param("id"));
+    if (!id.success) return c.json({ error: "unknown facility" }, 404);
+    const capacity = (await readCapacity())[id.data];
+    return c.json({ ...facilities.find((f) => f.id === id.data)!, capacity });
+  });
+
+  app.put("/api/facilities/:id/capacity", async (c) => {
+    const id = FacilityIdSchema.safeParse(c.req.param("id"));
+    if (!id.success) return c.json({ error: "unknown facility" }, 404);
+    const body = CapacitySchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: "invalid capacity", issues: body.error.issues }, 400);
+    const snapshot = await readCapacity();
+    snapshot[id.data] = body.data;
+    await writeFile(CAPACITY_PATH, JSON.stringify(snapshot, null, 2) + "\n");
+    return c.json(body.data);
+  });
+
+  return app;
+}
+
+export const app = createApp();

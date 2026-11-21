@@ -1,5 +1,5 @@
 /** Minimal text-only PDF builder for tests: one array of lines per page, Helvetica, no external assets. */
-export function makePdf(pages: string[][]): Uint8Array {
+export function makePdf(pages: string[][]): Uint8Array<ArrayBuffer> {
   const esc = (s: string) => s.replace(/[\\()]/g, (c) => `\\${c}`);
   const objs: string[] = [];
   const n = pages.length;
@@ -22,5 +22,5 @@ export function makePdf(pages: string[][]): Uint8Array {
   out += `xref\n0 ${objs.length}\n0000000000 65535 f \n`;
   for (let i = 1; i < objs.length; i++) out += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return new TextEncoder().encode(out);
+  return Uint8Array.from(Buffer.from(out, "latin1"));
 }

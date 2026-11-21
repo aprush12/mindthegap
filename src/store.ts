@@ -28,3 +28,33 @@ export async function list(): Promise<string[]> {
     return [];
   }
 }
+
+// ---- per-parse directories: data/{parseId}/{packet.pdf,pages.json,result.json} ----
+export function parseDir(id: string): string {
+  if (!/^[\w-]+$/.test(id)) throw new Error("invalid id");
+  return path.join(dir(), id);
+}
+
+export async function saveFile(id: string, name: string, value: unknown): Promise<void> {
+  await mkdir(parseDir(id), { recursive: true });
+  const body = value instanceof Uint8Array ? value : JSON.stringify(value, null, 2);
+  await writeFile(path.join(parseDir(id), name), body);
+}
+
+export async function loadFile<T>(id: string, name: string): Promise<T | undefined> {
+  try {
+    return JSON.parse(await readFile(path.join(parseDir(id), name), "utf8")) as T;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw e;
+  }
+}
+
+export async function readPacket(id: string): Promise<Uint8Array | undefined> {
+  try {
+    return await readFile(path.join(parseDir(id), "packet.pdf"));
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw e;
+  }
+}
