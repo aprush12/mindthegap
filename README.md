@@ -89,6 +89,15 @@ An `Item` is one rule evaluated for one facility:
 
 Verdict rollup: `decline` if any blocking item is `resolvable: capability`; `blocked` if any blocking item is `preArrival` (the sender must fix it before the patient travels); `conditional_accept` if blocking items remain that are cleared during the admission process, or any conditional items exist; `accept` otherwise. A rule that is `unknown` or `contradictory` is never treated as met.
 
+## What matters most (headline)
+
+The summary opens with a "What matters most" section: a 2-3 sentence patient snapshot, then per facility a verdict, one headline sentence and 3-6 numbered priorities (with due-by times; `tonight` items are styled loudest). The 43-row checklist and evidence stay below as the audit trail. The CLI table prints the same priorities.
+
+- `priorities` (in `result.json`): deterministic ranking per facility from `src/engine/priority.ts`, `prioritize(facilityResult, extraction, now)`. Order: tonight (first doses at risk, conditionals resolving within 12h of `now`), pre-arrival blocks, capability blocks, other blocks, conditionals by soonest resolve-by, contradictions, review items. A `decline` facility leads with its capability blocks. Candidates are `{id, text, severity, tier, dueBy?}` where `id` is a rule id or a synthetic id (`CAP-BEDS`, `FORMULARY:<agent>`).
+- `headline` (in `result.json`): `{ source, droppedUngrounded, patientSnapshot, perFacility: { A|B|C: { headline, topPriorities: [{ text, ruleIds, dueBy?, severity }] } } }`, from `src/pipeline/headline.ts`. One structured-output call per parse through the same `Llm` seam, model and env, with no PDF: the input is a compact JSON digest (patient facts, medications, per-facility verdict and the top 10 candidates with rule questions and evidence quotes).
+- Grounding: every `topPriorities` entry must cite ids present in the candidates sent for that facility. Entries citing an unknown id (or none) are dropped and counted in `headline.droppedUngrounded`. `dueBy` is taken from the cited candidates, not from the model.
+- Fallback: if the call fails, the reply is unusable or there is no key, the same shape is built deterministically from the candidates and `headline.source` is `"deterministic"` (otherwise `"model"`). A facility whose model entries were all dropped gets the deterministic entries. The pipeline never fails because of the headline call.
+
 ## Policy and capacity data
 
 Policy changes about once a year; capacity changes every shift. They are separate files and the engine joins them at evaluation time.

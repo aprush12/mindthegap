@@ -65,7 +65,7 @@ export function createApp(deps: AppDeps = {}) {
     const rec = validId(id) ? await loadFile<ParseRecord>(id, "result.json") : undefined;
     if (!rec) return c.json({ error: "unknown parse" }, 404);
     if (rec.status !== "complete" || !rec.result) return c.json({ error: `parse is ${rec.status}`, status: rec.status }, 409);
-    return c.html(renderSummary({ parseId: rec.parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, facilityNames: facilityNames() }));
+    return c.html(renderSummary({ parseId: rec.parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, headline: rec.headline, facilityNames: facilityNames() }));
   });
 
   app.get("/api/parses/:id/document/:page", async (c) => {

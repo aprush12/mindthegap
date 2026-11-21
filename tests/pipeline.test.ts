@@ -22,6 +22,7 @@ const calls: LlmRequest<unknown>[] = [];
 const fakeLlm: Llm = {
   async parse<T>(req: LlmRequest<T>): Promise<T> {
     calls.push(req as LlmRequest<unknown>);
+    if (req.label === "headline") throw new Error("no headline in this fake"); // exercises the deterministic fallback
     if (req.label === "document-map") {
       return { sections: [{ id: "face", title: "Face sheet", startPage: 1, endPage: 2 }, { id: "nursing", title: "Nursing", startPage: 3, endPage: 4 }] } as T;
     }
@@ -89,6 +90,9 @@ describe("pipeline", () => {
 
     const result = stored!.result as ScreenResult;
     expect(Object.keys(result.facilities).sort()).toEqual(["A", "B", "C"]);
+    // headline call failed in the fake: pipeline still completes with the deterministic headline
+    expect(stored!.headline).toMatchObject({ source: "deterministic", droppedUngrounded: 0 });
+    expect(stored!.priorities!.A.length).toBeGreaterThan(0);
     const paySeen = result.facilities.A.blocking.find((i) => i.ruleId === "PAY-01");
     expect(paySeen?.evidence[0].verified).toBe(true);
     expect(result.facilities.A.blocking.some((i) => i.ruleId === "REG-01" && i.state === "unknown")).toBe(true);
@@ -97,7 +101,10 @@ describe("pipeline", () => {
   it("shares an identical prefix across calls, warms with one call first, and never puts instructions in the prefix", async () => {
     await createRecord("p2");
     await runPipeline({ parseId: "p2", pdf: PDF, llm: fakeLlm });
-    const labels = calls.map((c) => c.label);
+    const labels = calls.map((c) => c.label).filter((l) => l !== "headline");
+    expect(calls.at(-1)!.label).toBe("headline");
+    expect(calls.at(-1)!.pdfBase64).toBeUndefined();
+    calls.pop();
     expect(labels[0]).toBe("document-map");
     expect(labels[1]).toBe("facts");
     expect(labels.filter((l) => l.startsWith("category-")).sort()).toEqual(["PAY", "REG", "ACU", "INF", "SKN", "THR", "NUT", "MON", "FUP", "DCP"].map((c) => `category-${c}`).sort());

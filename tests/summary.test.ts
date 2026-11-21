@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { screen } from "../src/engine/verdict.js";
 import { loadCapacity, loadPolicy } from "../src/policy/index.js";
-import { renderSummary, renderTextTable } from "../src/report/summary.js";
+import { prioritizeAll } from "../src/engine/priority.js";
+import { deterministicHeadline } from "../src/pipeline/headline.js";
+import { fmtTime, renderSummary, renderTextTable } from "../src/report/summary.js";
 import { ARRIVAL, NOW, elena } from "./fixtures/elena-mercado.js";
 
 const result = screen(elena, loadPolicy(), loadCapacity(), NOW);
-const input = { parseId: "parse-123", arrivalAt: ARRIVAL, evaluatedAt: NOW.toISOString(), result, facilityNames: { A: "Bayview", B: "Harborview", C: "Maple Grove" } };
+const headline = deterministicHeadline(elena, result, prioritizeAll(result, elena, NOW));
+const input = { parseId: "parse-123", arrivalAt: ARRIVAL, evaluatedAt: NOW.toISOString(), result, headline, facilityNames: { A: "Bayview", B: "Harborview", C: "Maple Grove" } };
 
 describe("renderSummary", () => {
   const html = renderSummary(input);
@@ -58,9 +61,33 @@ describe("renderSummary", () => {
   });
 });
 
+describe("What matters most", () => {
+  const html = renderSummary(input);
+  it("is the first section, above the verdict table and the checklist", () => {
+    expect(html).toContain("What matters most");
+    expect(html.indexOf("What matters most")).toBeLessThan(html.indexOf("<h2>Verdicts</h2>"));
+    expect(html.indexOf("What matters most")).toBeLessThan(html.indexOf("Blocking items ("));
+    expect(html).toContain(headline.patientSnapshot);
+  });
+  it("shows a tonight-severity item with its due-by time", () => {
+    expect(html).toContain("pri sev-tonight");
+    const due = headline.perFacility.A.topPriorities.find((t) => t.severity === "tonight" && t.dueBy)!.dueBy!;
+    expect(html).toContain(`Due by <b>${fmtTime(due)}</b>`);
+  });
+  it("is omitted when there is no headline", () => {
+    expect(renderSummary({ ...input, headline: undefined })).not.toContain("What matters most");
+  });
+  it("prints top priorities per facility in the CLI table", () => {
+    const t = renderTextTable(input);
+    expect(t).toContain("What matters most");
+    expect(t).toContain("[TONIGHT]");
+    expect(t).toContain("due by");
+  });
+});
+
 describe("renderTextTable", () => {
   it("prints the verdict table", () => {
-    const t = renderTextTable(input);
+    const t = renderTextTable({ ...input, headline: undefined });
     expect(t).toContain("Verdict");
     expect(t).toContain("Bayview");
     expect(t.split("\n")).toHaveLength(5);

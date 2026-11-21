@@ -7,8 +7,8 @@ export const DEFAULT_MODEL = "claude-opus-5-5";
 export interface LlmRequest<T> {
   /** Identical across every call in a parse so the cached prefix (system + document) is shared. */
   system: string;
-  /** The packet PDF as base64 with no newlines. */
-  pdfBase64: string;
+  /** The packet PDF as base64 with no newlines. Omit for text-only calls (the headline digest). */
+  pdfBase64?: string;
   /** Task-specific instruction, placed after the cached prefix. */
   instruction: string;
   schema: z.ZodType<T>;
@@ -40,7 +40,9 @@ export function createLlm(opts: { apiKey?: string; model?: string; client?: Anth
           {
             role: "user",
             content: [
-              { type: "document", source: { type: "base64", media_type: "application/pdf", data: stripNewlines(req.pdfBase64) }, cache_control: { type: "ephemeral" } },
+              ...(req.pdfBase64
+                ? [{ type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: stripNewlines(req.pdfBase64) }, cache_control: { type: "ephemeral" as const } }]
+                : []),
               { type: "text", text: req.instruction },
             ],
           },

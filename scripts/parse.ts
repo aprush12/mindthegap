@@ -32,7 +32,7 @@ if (rec.status !== "complete" || !rec.result) {
   process.exit(1);
 }
 
-const input = { parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, facilityNames: facilityNames() };
+const input = { parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, headline: rec.headline, facilityNames: facilityNames() };
 console.log(renderTextTable(input));
 
 const dir = out ?? parseDir(parseId);

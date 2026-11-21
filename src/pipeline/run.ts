@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { prioritizeAll, type Priorities } from "../engine/priority.js";
 import { screen, type ScreenResult } from "../engine/verdict.js";
 import { loadCapacity, loadPolicy, type Policy } from "../policy/index.js";
 import type { CapacitySnapshot } from "../policy/schema.js";
@@ -6,6 +7,7 @@ import { loadFile, saveFile } from "../store.js";
 import type { Evidence, Extraction } from "../types.js";
 import { anchorEvidence, type DocSection } from "./anchor.js";
 import type { Llm } from "./anthropic.js";
+import { buildHeadline, type Headline } from "./headline.js";
 import { buildDocumentMap } from "./document-map.js";
 import { runExtraction } from "./extraction.js";
 import { extractPages, type Page } from "./extract-text.js";
@@ -26,6 +28,10 @@ export interface ParseRecord {
   extraction?: Extraction;
   medicationEvidence?: Evidence[];
   result?: ScreenResult;
+  /** Ranked "what matters most" candidates per facility (deterministic). */
+  priorities?: Priorities;
+  /** Top-of-report summary: model-written and grounded in `priorities`, or deterministic fallback. */
+  headline?: Headline;
 }
 
 export const newParseId = () => randomUUID();
@@ -83,6 +89,8 @@ export async function runPipeline(opts: RunOptions): Promise<ParseRecord> {
     const arrival = anchored.timing.arrivalAt ? new Date(anchored.timing.arrivalAt) : undefined;
     const now = arrival && !Number.isNaN(arrival.getTime()) ? arrival : clock();
     const result = screen(anchored, policy, capacity, now);
+    const priorities = prioritizeAll(result, anchored, now);
+    const headline = await buildHeadline(llm, anchored, result, now, priorities); // never throws
 
     const done: ParseRecord = {
       ...rec,
@@ -95,6 +103,8 @@ export async function runPipeline(opts: RunOptions): Promise<ParseRecord> {
       extraction: anchored,
       medicationEvidence: medicationEvidence.map((e) => anchorEvidence(e, pages, documentMap)),
       result,
+      priorities,
+      headline,
     };
     await saveFile(parseId, "result.json", done);
     return done;
