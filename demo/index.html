@@ -1,0 +1,520 @@
+<title>Mind the Gap</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: single reading column (max 1120px) with one full-width product console as the centerpiece; quiet sections around it. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --sunken:#eef1f4; --line:#dde2e8; --line-strong:#c6cdd6;
+  --ink:#16202b; --ink-2:#44505e; --ink-3:#6b7684;
+  --accent:#1f5f8b; --accent-soft:#e3eef6;
+  --tonight:#b4361f; --tonight-soft:#fbe9e5;
+  --block:#9a5b00; --block-soft:#fbf0dc;
+  --cap:#5b3f86; --cap-soft:#efe9f7;
+  --clock:#1f5f8b; --clock-soft:#e3eef6;
+  --ok:#2c7a4b; --ok-soft:#e2f2e8;
+  --gap:#7a6a12; --gap-soft:#f6f1d6;
+  --f-sans:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#161d25; --sunken:#1c2530; --line:#26313d; --line-strong:#34414f;
+  --ink:#e6ebf0; --ink-2:#b2bcc7; --ink-3:#8692a0;
+  --accent:#7db4dc; --accent-soft:#1a2c3b;
+  --tonight:#f08a74; --tonight-soft:#3a1f1a;
+  --block:#e3a64a; --block-soft:#352712;
+  --cap:#b8a0e0; --cap-soft:#2a2238;
+  --clock:#7db4dc; --clock-soft:#1a2c3b;
+  --ok:#6fcb93; --ok-soft:#16301f;
+  --gap:#d8c45c; --gap-soft:#2f2b12;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#161d25; --sunken:#1c2530; --line:#26313d; --line-strong:#34414f;
+  --ink:#e6ebf0; --ink-2:#b2bcc7; --ink-3:#8692a0;
+  --accent:#7db4dc; --accent-soft:#1a2c3b;
+  --tonight:#f08a74; --tonight-soft:#3a1f1a;
+  --block:#e3a64a; --block-soft:#352712;
+  --cap:#b8a0e0; --cap-soft:#2a2238;
+  --clock:#7db4dc; --clock-soft:#1a2c3b;
+  --ok:#6fcb93; --ok-soft:#16301f;
+  --gap:#d8c45c; --gap-soft:#2f2b12;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-weight:600;text-wrap:balance;margin:0;letter-spacing:-0.01em}
+h1{font-size:clamp(28px,4.2vw,42px);line-height:1.15}
+h2{font-size:24px;line-height:1.25}
+h3{font-size:16px;line-height:1.35}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.lede{font-size:17px;color:var(--ink-2);max-width:62ch}
+.mono{font-family:var(--f-mono)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* top bar */
+.top{border-bottom:1px solid var(--line);background:var(--surface)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
+.mark{width:22px;height:22px;display:block}
+.top nav{display:flex;gap:20px;font-size:14px}
+.top nav a{color:var(--ink-2);text-decoration:none}
+.top nav a:hover{color:var(--ink)}
+
+/* hero */
+.hero .wrap{padding-block:56px 32px;display:grid;gap:18px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:6px;font-size:14px;color:var(--ink-2)}
+.facts span b{color:var(--ink);font-weight:600}
+
+/* console */
+.console{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.console-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--sunken)}
+.tabs{display:flex;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px;flex-wrap:wrap}
+.tab{appearance:none;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:14px;padding:7px 12px;border-radius:6px;cursor:pointer;text-align:left}
+.tab small{display:block;font-size:12px;color:var(--ink-3)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.viewtoggle{display:flex;gap:4px}
+.vt{appearance:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer}
+.vt[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+.patient{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 28px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.kv .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.kv .v{font-size:14px;margin-top:2px}
+.meds{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.med{font-family:var(--f-mono);font-size:12px;background:var(--sunken);border:1px solid var(--line);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.med.flag{border-color:var(--tonight);color:var(--tonight);background:var(--tonight-soft)}
+
+.facilities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.fac{padding:18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px;min-width:0}
+.fac:last-child{border-right:0}
+.fac-name{display:flex;flex-direction:column;gap:2px}
+.fac-name .sub{font-size:12px;color:var(--ink-3)}
+.verdict{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:3px 9px;border-radius:999px;width:max-content}
+.verdict::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.v-accept{color:var(--ok);background:var(--ok-soft)}
+.v-conditional_accept{color:var(--clock);background:var(--clock-soft)}
+.v-blocked{color:var(--block);background:var(--block-soft)}
+.v-decline{color:var(--cap);background:var(--cap-soft)}
+.fac-headline{font-size:14px;color:var(--ink-2);min-height:3em}
+
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--sunken)}
+.bar i{display:block;height:100%}
+.bar .s-met{background:var(--ok)} .bar .s-not_met{background:var(--tonight)} .bar .s-unknown{background:var(--block)} .bar .s-contradictory{background:var(--cap)} .bar .s-not_applicable{background:var(--line-strong)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--ink-3);margin-top:6px;font-variant-numeric:tabular-nums}
+.legend b{color:var(--ink-2);font-weight:500}
+
+ol.pris{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:p}
+.pri{border-radius:var(--r)}
+.pri button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 8px;width:100%;padding:9px 8px;border-radius:var(--r);cursor:pointer}
+.pri button:hover{background:var(--sunken)}
+.pri button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pri.open button{background:var(--sunken)}
+.num{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);padding-top:2px;font-variant-numeric:tabular-nums}
+.ptext{font-size:14px;line-height:1.4}
+.meta{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px}
+.chip{font-family:var(--f-mono);font-size:10.5px;font-weight:500;letter-spacing:.05em;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.c-tonight{color:var(--tonight);background:var(--tonight-soft)}
+.c-block{color:var(--block);background:var(--block-soft)}
+.c-capability{color:var(--cap);background:var(--cap-soft)}
+.c-clock{color:var(--clock);background:var(--clock-soft)}
+.c-confirm{color:var(--surface);background:var(--tonight)}
+.c-gap{color:var(--gap);background:var(--gap-soft)}
+.due{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.rid{font-family:var(--f-mono);font-size:11px;color:var(--ink-3)}
+.detail{margin:0 8px 8px 36px;padding:10px 12px;border-left:2px solid var(--line-strong);display:grid;gap:8px;font-size:13px}
+.detail .lbl{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.quote{font-family:var(--f-mono);font-size:12.5px;background:var(--sunken);padding:6px 8px;border-radius:4px;display:flex;justify-content:space-between;gap:10px}
+.quote .pg{color:var(--ink-3);white-space:nowrap}
+.notfound{color:var(--block)}
+[hidden]{display:none!important}
+.ask{color:var(--ink)}
+
+.gaps{padding:14px 18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;font-size:14px}
+.gaps .none{color:var(--ink-3)}
+
+/* call sheet view */
+.callsheet{padding:6px 18px 18px}
+.callsheet table{width:100%;border-collapse:collapse;font-size:14px}
+.callsheet th{text-align:left;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;padding:12px 10px 8px;border-bottom:1px solid var(--line)}
+.callsheet td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.callsheet td.who{white-space:nowrap;color:var(--ink-2);font-size:13px}
+.tscroll{overflow-x:auto}
+.cs-note{font-size:13px;color:var(--ink-3);padding:12px 0 0}
+
+.console-foot{padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);background:var(--sunken)}
+
+/* sections */
+section.band .wrap{padding-block:64px;display:grid;gap:28px}
+section.band + section.band .wrap{border-top:1px solid var(--line)}
+.sec-head{display:grid;gap:8px;max-width:68ch}
+
+.failures{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0;border-top:1px solid var(--line)}
+.failure{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 12px;padding:18px 16px 18px 0;border-bottom:1px solid var(--line)}
+.failure .n{font-family:var(--f-mono);font-size:13px;color:var(--ink-3)}
+.failure p{font-size:14px;color:var(--ink-2)}
+.failure .where{grid-column:2;font-size:13px;color:var(--accent);margin-top:4px}
+
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.step .who{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.step .who.llm{color:var(--accent)} .step .who.det{color:var(--ok)}
+.step p{font-size:14px;color:var(--ink-2)}
+.step code{font-family:var(--f-mono);font-size:12px;background:var(--sunken);padding:1px 5px;border-radius:3px}
+.boundary{font-size:14px;color:var(--ink-2);border-left:3px solid var(--ok);padding:4px 0 4px 14px;max-width:72ch}
+
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+.role{display:grid;gap:10px;align-content:start}
+.role ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:14px;display:grid;gap:6px}
+
+.trust{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 40px}
+.trust div{display:grid;gap:4px}
+.trust p{font-size:14px;color:var(--ink-2)}
+
+.next{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:start}
+.next .script{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;font-size:14px;display:grid;gap:10px}
+.line{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px}
+.line .sp{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding-top:2px}
+
+footer .wrap{padding-block:28px 40px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+
+@media (max-width:900px){
+  .facilities{grid-template-columns:1fr}
+  .fac{border-right:0;border-bottom:1px solid var(--line)}
+  .fac:last-child{border-bottom:0}
+  .flow,.roles{grid-template-columns:1fr}
+  .next{grid-template-columns:1fr}
+  .fac-headline{min-height:0}
+}
+@media (max-width:640px){
+  .top nav{display:none}
+  .trust{grid-template-columns:1fr}
+  .hero .wrap{padding-block:36px 24px}
+  section.band .wrap{padding-block:44px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .pri button,.tab,.vt{transition:background-color .12s ease}
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="9" width="8" height="4" rx="1" fill="var(--ink)"/><rect x="13" y="9" width="8" height="4" rx="1" fill="var(--accent)"/></svg>
+      Mind the Gap
+    </div>
+    <nav aria-label="Sections">
+      <a href="#demo">Demo</a>
+      <a href="#catches">What it catches</a>
+      <a href="#how">How it works</a>
+      <a href="#who">Who it helps</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Hospital-to-SNF referral screening</span>
+    <h1>Know what will go wrong with a transfer before the patient leaves the hospital.</h1>
+    <p class="lede">Mind the Gap reads the full referral packet, checks it against each skilled nursing facility's admission policy and tonight's capacity, and returns a short list of what has to happen, by when, and what to ask the hospital for.</p>
+    <div class="facts">
+      <span><b>~60-page</b> referral packet in</span>
+      <span><b>43 rules</b> checked per facility</span>
+      <span><b>Every finding</b> cites a page and quote</span>
+      <span><b>Deterministic</b> verdicts, no model judgment</span>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="console">
+      <div class="console-head">
+        <div class="tabs" role="tablist" aria-label="Sample referral">
+          <button class="tab" role="tab" id="tab-elena" data-case="elena" aria-selected="true">Elena Mercado<small>Heart failure, insulin, wound</small></button>
+          <button class="tab" role="tab" id="tab-harold" data-case="harold" aria-selected="false">Harold Jennings<small>Complete paperwork, telemetry ordered</small></button>
+        </div>
+        <div class="viewtoggle" role="group" aria-label="View">
+          <button class="vt" id="vt-fac" data-view="fac" aria-pressed="true">Facilities</button>
+          <button class="vt" id="vt-calls" data-view="calls" aria-pressed="false">Call sheet</button>
+        </div>
+      </div>
+      <div class="patient" id="patient"></div>
+      <div id="view-fac">
+        <div class="facilities" id="facilities"></div>
+        <div class="gaps" id="gaps"></div>
+      </div>
+      <div id="view-calls" class="callsheet" hidden></div>
+      <div class="console-foot">Output of the real screening engine on synthetic referral packets. Select any item to see the evidence behind it.</div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="catches">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">What it catches</span>
+      <h2>Six handoff failures that turn into readmissions</h2>
+      <p class="lede">Each one is small on the day and expensive a week later. The screen exists to surface them while the hospital can still fix them.</p>
+    </div>
+    <div class="failures">
+      <div class="failure"><span class="n">1</span><div><h3>Dose changed on the last day</h3><p>The discharge list says torsemide 40 mg. The cardiology note from the day before says 60 mg. The SNF gives the old dose.</p></div><span class="where">See Harold Jennings: flagged at all three facilities</span></div>
+      <div class="failure"><span class="n">2</span><div><h3>Day-one drugs the pharmacy can't supply</h3><p>Entresto, SGLT2 inhibitors and DOACs are often non-formulary or need prior authorization. Arrive after the pharmacy cutoff and doses get missed.</p></div><span class="where">See Elena Mercado at Bayview: 7 first doses at risk</span></div>
+      <div class="failure"><span class="n">3</span><div><h3>No daily-weights order</h3><p>A heart failure patient arrives with weights mentioned in a note but never ordered, and no plan for what weight gain should trigger a call.</p></div><span class="where">See Elena Mercado: two packet gaps</span></div>
+      <div class="failure"><span class="n">4</span><div><h3>Equipment not there on arrival</h3><p>A bariatric scale, home oxygen or CPAP that nobody arranged. Checked against what the facility has on hand.</p></div><span class="where">Rule THR-03</span></div>
+      <div class="failure"><span class="n">5</span><div><h3>Pending labs nobody follows up</h3><p>A repeat potassium is pending at transfer with no named person to receive the result.</p></div><span class="where">See Harold Jennings: FUP-01</span></div>
+      <div class="failure"><span class="n">6</span><div><h3>No cardiology follow-up booked</h3><p>Appointments must have a date, a location and transport, and the patient needs a PCP of record.</p></div><span class="where">Rules FUP-02, FUP-03</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">How it works</span>
+      <h2>The model reads. The rules decide.</h2>
+      <p class="lede">Reading a long chart is where a language model helps. Deciding whether a facility can admit someone is not, so that part is plain code you can audit line by line.</p>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <span class="who llm">Step 1 · Model</span>
+        <h3>Answer 43 questions about the record</h3>
+        <p>Claude reads the packet once and answers a fixed set of facility-agnostic questions: Is PASRR complete? What is the isolation status? Which doses changed in the last 72 hours? Each answer carries the page and the exact quote.</p>
+        <p>Quotes are matched back to the PDF text. A quote that isn't in the document is marked unverified.</p>
+      </div>
+      <div class="step">
+        <span class="who det">Step 2 · Rules engine</span>
+        <h3>Apply each facility's policy and capacity</h3>
+        <p>A pure TypeScript engine scores those answers against each facility's 43 rules, formulary, pharmacy cutoff, emergency kit and tonight's bed and staffing snapshot.</p>
+        <p>Result per facility: <code>accept</code>, <code>conditional_accept</code>, <code>blocked</code> or <code>decline</code>, with resolve-by times.</p>
+      </div>
+      <div class="step">
+        <span class="who det">Step 3 · Prioritize</span>
+        <h3>Rank what matters tonight</h3>
+        <p>Items are ordered by urgency: first doses at risk, blocks that must clear before travel, things the facility can't do, then items on a clock.</p>
+        <p>Each one comes with the exact question to put to the discharging hospital. Together they form the call sheet.</p>
+      </div>
+    </div>
+    <p class="boundary">The model never decides admissibility. If the model's summary cites something the engine didn't produce, it is dropped. If the model is unavailable, the same summary is built from the engine output alone.</p>
+  </div>
+</section>
+
+<section class="band" id="who">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Who it helps</span>
+      <h2>One screen for both sides of the handoff</h2>
+    </div>
+    <div class="roles">
+      <div class="role">
+        <h3>SNF admissions coordinator</h3>
+        <ul>
+          <li>Decide on a referral in minutes instead of reading 60 pages at 7 PM.</li>
+          <li>See why a patient can't come here, so the answer to the hospital is specific.</li>
+          <li>Every "no" or "not yet" has a page reference to back it up.</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h3>Hospital case manager</h3>
+        <ul>
+          <li>Learn which facility can take the patient tonight, and which can't at any level of paperwork.</li>
+          <li>Get one list of missing documents across all facilities instead of three phone calls.</li>
+          <li>Fix gaps before the ambulance is booked, not after a refused admission.</li>
+        </ul>
+      </div>
+      <div class="role">
+        <h3>SNF nursing and pharmacy</h3>
+        <ul>
+          <li>Know which first doses are at risk and when they are due.</li>
+          <li>Get dose conflicts in front of a prescriber before the first administration.</li>
+          <li>Arrive with monitoring orders, equipment and follow-up already confirmed.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="trust">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Built for clinical review</span>
+      <h2>Designed to be checked, not trusted blindly</h2>
+    </div>
+    <div class="trust">
+      <div><h3>Unknown is not met</h3><p>A trach that is never mentioned and a trach the reader missed look identical. When the packet doesn't answer a question, the screen says so and applies the facility's rule for missing information.</p></div>
+      <div><h3>Contradictions are shown, not resolved</h3><p>When two passages disagree, both quotes and both pages are surfaced side by side. A clinician picks the right one.</p></div>
+      <div><h3>Fixed-length audit trail</h3><p>Every facility gets the same 43 rows, including the ones that passed. Nothing is summarized away.</p></div>
+      <div><h3>Policy lives in data</h3><p>Rules, formularies and thresholds are JSON files per facility. Capacity is a separate snapshot updated each shift.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="next">
+  <div class="wrap">
+    <div class="next">
+      <div class="sec-head">
+        <span class="eyebrow">What's next</span>
+        <h2>An agent that works the call sheet</h2>
+        <p class="lede">Every open item already carries the one-sentence question for the hospital. The next step is a voice agent that calls the discharging unit, asks each question, and records the answers back against the rule that raised it.</p>
+      </div>
+      <div class="script" aria-label="Example call">
+        <div class="line"><span class="sp">Agent</span><span>Calling about Harold Jennings, transferring to Harborview this afternoon. The discharge list has torsemide 40 mg daily, but the 17 Nov cardiology note says it was increased to 60 mg. Which dose should we give?</span></div>
+        <div class="line"><span class="sp">Hospital</span><span>60. The list wasn't updated.</span></div>
+        <div class="line"><span class="sp">Agent</span><span>Thank you. Can you also name who should receive the repeat potassium that's pending?</span></div>
+        <div class="line"><span class="sp">Logged</span><span class="mono" style="font-size:12.5px">MEDREC:torsemide → resolved, 60 mg confirmed</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Mind the Gap</span>
+    <span>All patients, facilities, formularies and thresholds shown are synthetic. No real patient data.</span>
+  </div>
+</footer>
+
+<script>
+const DATA = {"elena":{"snapshot":"71.4 kg, insulin-dependent, 7 discharge medications, wound care needed, referred for complex medical","timing":{"dischargeAt":"2026-11-17T18:42:00","arrivalAt":"2026-11-17T20:40:00"},"meds":["Sacubitril/valsartan (Entresto) 24/26 mg","Insulin glargine 20 units","Apixaban 2.5 mg","Furosemide 40 mg","Carvedilol 6.25 mg","Atorvastatin 40 mg","Amiodarone 200 mg"],"gaps":[{"id":"PKT-HF-WEIGHTS","text":"Heart failure, but no daily-weights order in the packet","followUpAsk":"Send the signed physician order for daily weights","evidence":[{"quote":"Daily weights for heart failure","page":12}]},{"id":"PKT-HF-PLAN","text":"Heart failure, but no weight-gain call parameters in the packet","followUpAsk":"Send the weight-gain escalation parameters: how much gain in a day or a week means call the physician","evidence":[{"quote":"Daily weights for heart failure","page":12}]}],"fac":{"A":{"verdict":"conditional_accept","headline":"Can take this patient with conditions: 3 blockers to clear, 7 items needed tonight.","blocking":3,"conditional":17,"review":5,"states":{"not_met":8,"met":14,"unknown":17,"not_applicable":4},"priorities":[{"sev":"tonight","text":"First doses at risk: arrival past pharmacy cutoff (7 meds; worst: Entresto, needs 72-hr exception)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the hospital how first doses of 7 meds will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get an interchange order: glargine → detemir (facility doesn't stock glargine)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the prescriber for an interchange order: glargine → detemir","ids":["RX-05"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Entresto isn't on the formulary (needs 72-hr exception)","due":"2026-11-18T08:00:00.000Z","ask":"Ask the prescriber for a formulary alternative to Entresto","ids":["RX-01"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get payor prior authorization for Apixaban","due":"2026-11-18T08:00:00.000Z","ask":"Ask the hospital to start payor prior authorization for Apixaban","ids":["RX-03"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Insulin correction scale is referenced in the MAR but was never sent; obtain before first meal","due":"2026-11-18T08:40:00.000Z","ask":"Send the insulin correction scale from the MAR before the first meal","ids":["ACU-06"],"ev":[{"q":"Correct per sliding scale insulin orders (scale not attached)","p":17}],"state":"not_met"},{"sev":"tonight","text":"Physician orders are unsigned; chase the hospital for signatures","due":"2026-11-18T08:40:00.000Z","ask":"Send the signed physician order set","ids":["RX-06"],"ev":[],"state":"unknown"}]},"B":{"verdict":"blocked","headline":"Not yet: 1 item must be cleared before the patient travels.","blocking":4,"conditional":13,"review":5,"states":{"not_met":5,"met":17,"unknown":17,"not_applicable":4},"priorities":[{"sev":"tonight","text":"Wound details incomplete; need stage, size, site and treatment order","due":"2026-11-18T08:40:00.000Z","ask":"Send each wound's stage, size, site and treatment order","ids":["SKN-01"],"ev":[{"q":"Stage 2 sacral pressure injury","p":9}],"state":"not_met"},{"sev":"tonight","text":"Wounds not documented as present on admission","due":"2026-11-18T08:40:00.000Z","ask":"Confirm which wounds were present on admission","ids":["SKN-02"],"ev":[],"state":"unknown"},{"sev":"block","text":"Physician orders are unsigned; chase the hospital for signatures","ask":"Send the signed physician order set","ids":["RX-06"],"ev":[],"state":"unknown"},{"sev":"block","text":"Insurance authorization still pending","ask":"Confirm when the insurance authorization will be approved and for how many days","ids":["PAY-01"],"ev":[{"q":"Authorization pending with payor","p":4}],"state":"not_met"},{"sev":"block","text":"PASRR screening missing from the packet","ask":"Fax the PASRR Level I determination","ids":["REG-01"],"ev":[],"state":"unknown"},{"sev":"block","text":"No MDRO/isolation status anywhere in the packet","ask":"Send the MDRO and isolation status, or confirm there is none","ids":["INF-01"],"ev":[],"state":"unknown"}]},"C":{"verdict":"decline","headline":"Can't take this patient here: 2 things this facility can't do.","blocking":7,"conditional":15,"review":1,"states":{"not_met":8,"met":14,"unknown":15,"not_applicable":6},"priorities":[{"sev":"capability","text":"This facility cannot manage sliding-scale insulin overnight (RN leaves at 11 PM)","ask":"Ask the prescriber whether a simpler insulin plan can replace overnight sliding scale","ids":["ACU-06"],"ev":[{"q":"Correct per sliding scale insulin orders (scale not attached)","p":17}],"state":"not_met"},{"sev":"capability","text":"Pharmacy can't get first doses here in time (past 4 PM cutoff; 7 meds; worst: Entresto, not stocked)","ask":"Ask the prescriber how first doses will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"Get an interchange order: glargine → NPH insulin (facility doesn't stock glargine)","due":"2026-11-17T21:00:00.000Z","ask":"Ask the prescriber for an interchange order: glargine → NPH insulin","ids":["RX-05"],"ev":[],"state":"not_met"},{"sev":"tonight","text":"2 meds aren't on the formulary (worst: Entresto, not stocked)","due":"2026-11-18T08:00:00.000Z","ask":"Ask the prescriber for a formulary alternative to Entresto and 1 other med","ids":["RX-01"],"ev":[],"state":"not_met"},{"sev":"block","text":"Insurance authorization still pending","ask":"Confirm when the insurance authorization will be approved and for how many days","ids":["PAY-01"],"ev":[{"q":"Authorization pending with payor","p":4}],"state":"not_met"},{"sev":"block","text":"No responsible party named; needed at signing","ask":"Give us the name and phone number of the responsible party","ids":["PAY-04"],"ev":[],"state":"unknown"}]}}},"harold":{"snapshot":"95 kg, 8 discharge medications, referred for complex medical","timing":{"dischargeAt":"2026-11-18T11:30:00","arrivalAt":"2026-11-18T14:30:00"},"meds":["Torsemide 40 mg","Empagliflozin (Jardiance) 10 mg","Spironolactone 25 mg","Carvedilol 12.5 mg","Amiodarone 200 mg","Aspirin 81 mg","Atorvastatin 40 mg","Senna 8.6 mg"],"gaps":[],"fac":{"A":{"verdict":"decline","headline":"Can't take this patient here: 1 thing this facility can't do.","blocking":1,"conditional":5,"review":1,"states":{"met":31,"not_applicable":5,"not_met":6,"unknown":1},"priorities":[{"sev":"capability","text":"This facility cannot provide the monitoring required","ask":"Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed","ids":["MON-03"],"ev":[{"q":"CONTINUOUS CARDIAC TELEMETRY ordered for 7 days from arrival","p":25}],"state":"not_met"},{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"First doses at risk: supply arrives after they're due (1 med; worst: Jardiance, needs 72-hr exception)","due":"2026-11-19T08:00:00.000Z","ask":"Ask the hospital how first doses of 1 med will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-19T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-19T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"Get payor prior authorization for Jardiance","due":"2026-11-20T14:30:00.000Z","ask":"Ask the hospital to start payor prior authorization for Jardiance","ids":["RX-03"],"ev":[],"state":"not_met"}]},"B":{"verdict":"conditional_accept","headline":"Can take this patient with conditions: 3 items to resolve, 1 item needed tonight.","blocking":0,"conditional":3,"review":1,"states":{"met":34,"not_applicable":5,"not_met":3,"unknown":1},"priorities":[{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"Get payor prior authorization for Jardiance","due":"2026-11-19T14:30:00.000Z","ask":"Ask the hospital to start payor prior authorization for Jardiance","ids":["RX-03"],"ev":[],"state":"not_met"},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-19T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-19T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"Bed-hold policy not yet acknowledged","ask":"Confirm the family was told the bed-hold policy","ids":["DCP-02"],"ev":[],"state":"unknown"}]},"C":{"verdict":"decline","headline":"Can't take this patient here: 2 things this facility can't do.","blocking":2,"conditional":3,"review":1,"states":{"met":30,"not_applicable":7,"not_met":5,"unknown":1},"priorities":[{"sev":"capability","text":"Pharmacy can't get first doses here in time (2 meds; worst: Jardiance, not stocked)","ask":"Ask the prescriber how first doses will be covered, since supply arrives after they are due","ids":["RX-02"],"ev":[],"state":"not_met"},{"sev":"capability","text":"This facility cannot provide the monitoring required","ask":"Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed","ids":["MON-03"],"ev":[{"q":"CONTINUOUS CARDIAC TELEMETRY ordered for 7 days from arrival","p":25}],"state":"not_met"},{"sev":"tonight","text":"Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose","due":"2026-11-19T08:00:00.000Z","ask":"Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg","ids":["MEDREC:torsemide"],"ev":[{"q":"Torsemide 40 mg","p":21},{"q":"increased torsemide to 60 mg daily","p":11}]},{"sev":"clock","text":"Weight-bearing status missing","due":"2026-11-20T14:30:00.000Z","ask":"Send the weight-bearing status order","ids":["THR-01"],"ev":[{"q":"tolerates standing and gait training as tolerated with a rolling walker","p":30}],"state":"not_met"},{"sev":"clock","text":"Pending results have no named recipient","due":"2026-11-20T14:30:00.000Z","ask":"Name who receives each pending result","ids":["FUP-01"],"ev":[{"q":"Repeat potassium pending at the time of transfer","p":26}],"state":"not_met"},{"sev":"clock","text":"2 meds aren't on the formulary (worst: Jardiance, not stocked)","due":"2026-11-22T14:30:00.000Z","ask":"Ask the prescriber for a formulary alternative to Jardiance and 1 other med","ids":["RX-01"],"ev":[],"state":"not_met"}]}}}};
+const FAC = {
+  A:{name:"Bayview Rehabilitation & Nursing", sub:"140 beds · pharmacy cutoff 18:00 · no telemetry"},
+  B:{name:"Harborview Post-Acute & Pulmonary", sub:"200 beds · in-house pharmacy until 22:00"},
+  C:{name:"Maple Grove Skilled Nursing", sub:"90 beds · pharmacy cutoff 16:00 · RN until 23:00"}
+};
+const CASES = {
+  elena:{name:"Elena Mercado", reason:"Heart failure exacerbation, insulin-dependent diabetes, stage 2 sacral pressure injury", pages:51},
+  harold:{name:"Harold Jennings", reason:"Heart failure, atrial fibrillation on amiodarone, continuous telemetry ordered for 7 days", pages:null}
+};
+const VERDICT = {accept:"Accept", conditional_accept:"Conditional accept", blocked:"Blocked", decline:"Decline"};
+const CHIP = {tonight:"TONIGHT", block:"BLOCKED", capability:"CAN'T DO HERE", clock:"ON THE CLOCK"};
+const STATE_LABEL = {met:"met", not_met:"not met", unknown:"unknown", contradictory:"contradictory", not_applicable:"n/a"};
+const STATE_ORDER = ["met","not_met","unknown","contradictory","not_applicable"];
+
+let current = "elena", view = "fac";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function wall(iso){ // timestamps are facility wall-clock times; read them as written
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(iso||""); if(!m) return null;
+  return {date:m[1], h:+m[2], min:+m[3]};
+}
+function clock(t){ const h = t.h%12 || 12; return `${h}:${String(t.min).padStart(2,"0")} ${t.h<12?"AM":"PM"}`; }
+function when(iso, refIso){
+  const t = wall(iso), r = wall(refIso); if(!t) return "";
+  if(t.date === r.date) return (t.h >= 17 ? "tonight " : "today ") + clock(t);
+  const d1 = new Date(t.date+"T00:00:00Z"), d0 = new Date(r.date+"T00:00:00Z");
+  if((d1-d0)/864e5 === 1) return "tomorrow " + clock(t);
+  return t.date + " " + clock(t);
+}
+function dayTime(iso){
+  const t = wall(iso); const d = new Date(t.date+"T12:00:00Z");
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"}) + ", " + clock(t);
+}
+
+function renderPatient(){
+  const c = DATA[current], meta = CASES[current];
+  const flagged = current === "harold" ? ["Torsemide"] : [];
+  document.getElementById("patient").innerHTML = `
+    <div class="kv"><div class="k">Patient</div><div class="v"><b>${esc(meta.name)}</b> · ${esc(c.snapshot)}</div></div>
+    <div class="kv"><div class="k">Reason for referral</div><div class="v">${esc(meta.reason)}</div></div>
+    <div class="kv"><div class="k">Discharge → arrival</div><div class="v" style="font-variant-numeric:tabular-nums">${dayTime(c.timing.dischargeAt)} → ${clock(wall(c.timing.arrivalAt))}</div></div>
+    <div class="kv" style="grid-column:1/-1"><div class="k">Discharge medications</div><div class="meds">${c.meds.map(m=>`<span class="med${flagged.some(f=>m.startsWith(f))?" flag":""}">${esc(m)}</span>`).join("")}</div></div>`;
+}
+
+function renderFacilities(){
+  const c = DATA[current];
+  document.getElementById("facilities").innerHTML = ["A","B","C"].map(f => {
+    const x = c.fac[f];
+    const total = Object.values(x.states).reduce((a,b)=>a+b,0);
+    const bar = STATE_ORDER.filter(s=>x.states[s]).map(s=>`<i class="s-${s}" style="width:${(x.states[s]/total*100).toFixed(2)}%"></i>`).join("");
+    const legend = STATE_ORDER.filter(s=>x.states[s]).map(s=>`<span><b>${x.states[s]}</b> ${STATE_LABEL[s]}</span>`).join("");
+    const pris = x.priorities.map((p,i) => {
+      const isMed = p.ids.some(id=>id.startsWith("MEDREC:"));
+      const chip = isMed ? `<span class="chip c-confirm">CONFIRM DOSE</span>` : `<span class="chip c-${p.sev}">${CHIP[p.sev]}</span>`;
+      const due = p.due ? `<span class="due">by ${esc(when(p.due, c.timing.arrivalAt))}</span>` : "";
+      const ev = p.ev.length
+        ? p.ev.map(e=>`<div class="quote"><span>“${esc(e.q)}”</span><span class="pg">p. ${e.p}</span></div>`).join("")
+        : (p.state === "unknown"
+            ? `<div class="notfound">Not found anywhere in the packet. Treated as not met, per this facility's policy for missing information.</div>`
+            : `<div>Computed from the medication list, this facility's formulary and its pharmacy delivery schedule.</div>`);
+      const did = `d-${current}-${f}-${i}`;
+      return `<li class="pri">
+        <button aria-expanded="false" aria-controls="${did}">
+          <span class="num">${i+1}</span><span class="ptext">${esc(p.text)}</span>
+          <span class="meta">${chip}${due}<span class="rid">${esc(p.ids.join(", "))}</span></span>
+        </button>
+        <div class="detail" id="${did}" hidden>
+          <div><div class="lbl">${isMed ? "Both passages" : "Evidence"}</div></div>${ev}
+          ${p.ask ? `<div><div class="lbl">Ask the hospital</div><div class="ask">${esc(p.ask)}</div></div>` : ""}
+        </div>
+      </li>`;
+    }).join("");
+    return `<div class="fac">
+      <div class="fac-name"><h3>${esc(FAC[f].name)}</h3><span class="sub">${esc(FAC[f].sub)}</span></div>
+      <span class="verdict v-${x.verdict}">${VERDICT[x.verdict]}</span>
+      <p class="fac-headline">${esc(x.headline)}</p>
+      <div><div class="bar" role="img" aria-label="43 rules: ${legend.replace(/<[^>]+>/g,"")}">${bar}</div><div class="legend">${legend}</div></div>
+      <ol class="pris">${pris}</ol>
+    </div>`;
+  }).join("");
+  const gaps = c.gaps || [];
+  document.getElementById("gaps").innerHTML = gaps.length
+    ? `<span class="chip c-gap">PACKET GAP</span>` + gaps.map(g=>`<span>${esc(g.text)} <span class="rid">· p. ${g.evidence?.[0]?.page ?? "–"} mentions it in narrative only</span></span>`).join("")
+    : `<span class="chip c-ok" style="color:var(--ok);background:var(--ok-soft)">PACKET COMPLETE</span><span class="none">Daily weights and weight-gain escalation are ordered (p. 22). No diagnosis-based gaps.</span>`;
+}
+
+function renderCalls(){
+  const c = DATA[current];
+  const rank = {tonight:0, block:1, capability:2, clock:3, caution:4};
+  const map = new Map();
+  for(const f of ["A","B","C"]) for(const p of c.fac[f].priorities){
+    if(!p.ask) continue;
+    const key = p.ask;
+    const indep = p.ids.some(id=>id.startsWith("MEDREC:"));
+    if(!map.has(key)) map.set(key,{ask:p.ask, sev:p.sev, med:indep, facs:new Set(), ids:p.ids});
+    const e = map.get(key); e.facs.add(f); if(rank[p.sev] < rank[e.sev]) e.sev = p.sev;
+  }
+  for(const g of (c.gaps||[])) map.set(g.followUpAsk,{ask:g.followUpAsk, sev:"caution", gap:true, facs:new Set(["A","B","C"]), ids:[g.id]});
+  const rows = [...map.values()].sort((a,b)=>(a.med?-1:0)-(b.med?-1:0) || rank[a.sev]-rank[b.sev]);
+  const short = {A:"Bayview",B:"Harborview",C:"Maple Grove"};
+  document.getElementById("view-calls").innerHTML = `
+    <div class="tscroll"><table>
+      <thead><tr><th style="width:36px">#</th><th>Question for the discharging hospital</th><th>Priority</th><th>Affects</th></tr></thead>
+      <tbody>${rows.map((r,i)=>`<tr>
+        <td class="num">${i+1}</td>
+        <td>${esc(r.ask)}<div class="rid" style="margin-top:2px">${esc(r.ids.join(", "))}</div></td>
+        <td>${r.med?`<span class="chip c-confirm">CONFIRM DOSE</span>`:r.gap?`<span class="chip c-gap">PACKET GAP</span>`:`<span class="chip c-${r.sev}">${CHIP[r.sev]}</span>`}</td>
+        <td class="who">${r.facs.size===3?"All facilities":[...r.facs].map(f=>short[f]).join(", ")}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <p class="cs-note">${rows.length} questions, deduplicated across facilities. One call to the hospital instead of three.</p>`;
+}
+
+function render(){ renderPatient(); renderFacilities(); renderCalls(); }
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab"); if(!b) return;
+  current = b.dataset.case;
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected", t===b));
+  render();
+});
+document.querySelector(".viewtoggle").addEventListener("click", e => {
+  const b = e.target.closest(".vt"); if(!b) return;
+  view = b.dataset.view;
+  document.querySelectorAll(".vt").forEach(t=>t.setAttribute("aria-pressed", t===b));
+  document.getElementById("view-fac").hidden = view!=="fac";
+  document.getElementById("view-calls").hidden = view!=="calls";
+});
+document.getElementById("facilities").addEventListener("click", e => {
+  const b = e.target.closest(".pri button"); if(!b) return;
+  const open = b.getAttribute("aria-expanded") !== "true";
+  b.setAttribute("aria-expanded", open);
+  b.parentElement.classList.toggle("open", open);
+  document.getElementById(b.getAttribute("aria-controls")).hidden = !open;
+});
+render();
+// open the most telling item on first load so the evidence view is visible at rest
+document.querySelector('#facilities .fac:nth-child(2) .pri:nth-child(5) button')?.click();
+</script>
