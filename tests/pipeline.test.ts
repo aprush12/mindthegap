@@ -4,7 +4,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createLlm, stripNewlines, type Llm, type LlmRequest } from "../src/pipeline/anthropic.js";
-import { COMPUTED_RULES, CategoryResultSchema, FactsResultSchema } from "../src/pipeline/extraction.js";
+import { COMPUTED_RULES, CategoryResultSchema, FactsResultSchema, MedicationsResultSchema } from "../src/pipeline/extraction.js";
 import { createRecord, runPipeline, type ParseRecord } from "../src/pipeline/run.js";
 import { loadFile } from "../src/store.js";
 import type { ScreenResult } from "../src/engine/verdict.js";
@@ -31,11 +31,15 @@ const fakeLlm: Llm = {
         timing: { dischargeAt: "2026-11-17T18:42:00", arrivalAt: "2026-11-17T20:40:00" },
         patient: { targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, weightKg: 71.4, ventDependent: false, trach: false, dialysis: false, elopementRisk: false, diagnoses: { heartFailure: true } },
         monitoringOrders: { dailyWeightsOrdered: false, weightEscalationPlan: false, evidence: [{ quote: "heart failure", page: 2 }] },
+        rx06: { ruleId: "RX-06", answered: false, fields: [], evidence: [], contradictions: [] },
+      }) as T;
+    }
+    if (req.label === "medications") {
+      return MedicationsResultSchema.parse({
         medications: [{
           name: "Furosemide 40 mg", dose: "40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-18T08:00:00", controlled: "no", hardCopyPresent: "unknown", correctionScale: "unknown", quote: "heart failure", page: 2,
           doseChanges: [{ listedDose: "40 mg daily", noteDose: "80 mg daily", noteContext: "17 Nov progress note", quoteList: "Furosemide 40 mg", pageList: 3, quoteNote: "Weight 71.4 kg", pageNote: 4 }],
         }],
-        rx06: { ruleId: "RX-06", answered: false, fields: [], evidence: [], contradictions: [] },
       }) as T;
     }
     const cat = req.label.replace("category-", "");
@@ -117,6 +121,7 @@ describe("pipeline", () => {
     calls.pop();
     expect(labels[0]).toBe("document-map");
     expect(labels[1]).toBe("facts");
+    expect(labels).toContain("medications");
     expect(labels.filter((l) => l.startsWith("category-")).sort()).toEqual(["PAY", "REG", "ACU", "INF", "SKN", "THR", "NUT", "MON", "FUP", "DCP"].map((c) => `category-${c}`).sort());
     expect(new Set(calls.map((c) => c.system)).size).toBe(1);
     expect(new Set(calls.map((c) => c.pdfBase64)).size).toBe(1);

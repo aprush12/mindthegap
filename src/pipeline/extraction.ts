@@ -56,6 +56,15 @@ export const FactsResultSchema = z.object({
     weightEscalationPlan: z.boolean().describe("true ONLY if weight-gain escalation parameters are ordered or instructed (for example call the physician for a gain of more than 3 lb in a day or 5 lb in a week)"),
     evidence: z.array(EvidenceSchema).describe("verbatim quotes supporting each true flag; for a false flag, the closest narrative mention if there is one"),
   }),
+  rx06: AnswerSchema,
+});
+type RawFacts = z.infer<typeof FactsResultSchema>;
+
+/**
+ * Medications get their own call: folded into the facts schema, the combined structured-output grammar
+ * exceeded the API's size limit ("compiled grammar is too large").
+ */
+export const MedicationsResultSchema = z.object({
   medications: z.array(
     z.object({
       name: z.string(),
@@ -84,9 +93,8 @@ export const FactsResultSchema = z.object({
         .describe("empty when the final-72-hours documents agree with the discharge list"),
     }),
   ),
-  rx06: AnswerSchema,
 });
-type RawFacts = z.infer<typeof FactsResultSchema>;
+type RawMedications = z.infer<typeof MedicationsResultSchema>;
 
 // ---- prompts ----
 /** Fields the engine reads per rule, beyond what rules.json lists in requiresAll/requiresAny. */
@@ -132,15 +140,11 @@ export function categoryInstruction(category: string, rules: Rule[]): string {
 }
 
 export function factsInstruction(rx06: Rule): string {
-  return `Task: extract patient facts, timing, the discharge medication list, and the signed-orders status.
+  return `Task: extract patient facts, timing, monitoring orders, and the signed-orders status. (The medication list is extracted separately; do not list medications here.)
 
 Timing: dischargeAt and arrivalAt as ISO 8601 local datetimes (no timezone), only if the record states them; otherwise null.
 
 Patient facts: set each field only when the record states it; otherwise null (null means "not stated", never "no"). targetUnit is the SNF unit tier the documented needs point to (vent_trach for ventilator/tracheostomy care, complex_medical for high-acuity medical needs, skilled_medical, short_stay_rehab, long_term_care, memory_care) - null if the record does not support a choice. weightKg is the most recent documented weight in kilograms.
-
-Medications: list every discharge medication exactly as the record names it, with a verbatim quote and page for each. dose/route/schedule only as written (empty string if not stated). firstDoseDue only when the record gives administration times; empty string otherwise. controlled, hardCopyPresent and correctionScale are yes/no only when the record says so; otherwise unknown.
-
-Medication reconciliation sweep: after listing the discharge medications, reconcile EACH one against the doses and frequencies stated in the FINAL 72 HOURS of progress notes, consults and orders (the three days before discharge). For every medication where a final-72-hours document gives a different dose or frequency than the discharge list (for example a note saying "increased torsemide to 60 mg daily" while the list says 40 mg), add a doseChanges entry with both verbatim quotes and both pages. Report every divergence. Do NOT decide which one is right and do not adjust the medication's own dose field; the discharge list stays as written. A medication with no divergence gets an empty doseChanges list.
 
 Diagnoses: diagnoses.heartFailure is true when heart failure is a diagnosis anywhere in the record, false if the record rules it out, null if not stated.
 
@@ -150,6 +154,14 @@ Signed orders (rule RX-06):
 ${ruleBlock(rx06)}
 ${ANSWER_FORMAT.split("\n").slice(1).join("\n")}
 Return that answer in the rx06 field.`;
+}
+
+export function medicationsInstruction(): string {
+  return `Task: extract the discharge medication list and reconcile it against the final 72 hours of notes.
+
+Medications: list every discharge medication exactly as the record names it, with a verbatim quote and page for each. dose/route/schedule only as written (empty string if not stated). firstDoseDue only when the record gives administration times; empty string otherwise. controlled, hardCopyPresent and correctionScale are yes/no only when the record says so; otherwise unknown.
+
+Medication reconciliation sweep: after listing the discharge medications, reconcile EACH one against the doses and frequencies stated in the FINAL 72 HOURS of progress notes, consults and orders (the three days before discharge). For every medication where a final-72-hours document gives a different dose or frequency than the discharge list (for example a note saying "increased torsemide to 60 mg daily" while the list says 40 mg), add a doseChanges entry with both verbatim quotes and both pages. Report every divergence. Do NOT decide which one is right and do not adjust the medication's own dose field; the discharge list stays as written. A medication with no divergence gets an empty doseChanges list.`;
 }
 
 // ---- conversion ----
@@ -165,7 +177,7 @@ function toAnswer(raw: RawAnswer): RuleAnswer {
   return answer;
 }
 
-function toFacts(raw: RawFacts): { timing: Timing; patient: Patient; medications: Med[]; monitoringOrders?: MonitoringOrders } {
+function toFacts(raw: RawFacts, rawMeds: RawMedications): { timing: Timing; patient: Patient; medications: Med[]; monitoringOrders?: MonitoringOrders } {
   const timing: Timing = {};
   if (raw.timing.dischargeAt) timing.dischargeAt = raw.timing.dischargeAt;
   if (raw.timing.arrivalAt) timing.arrivalAt = raw.timing.arrivalAt;
@@ -177,7 +189,7 @@ function toFacts(raw: RawFacts): { timing: Timing; patient: Patient; medications
     for (const [k, v] of Object.entries(dx)) if (v != null) flags[k] = v;
     if (Object.keys(flags).length) patient.diagnoses = flags;
   }
-  const medications: Med[] = raw.medications.map((m) => {
+  const medications: Med[] = rawMeds.medications.map((m) => {
     const med: Med = { name: m.name };
     for (const k of ["dose", "route", "schedule", "firstDoseDue"] as const) if (m[k]) med[k] = m[k];
     for (const k of ["controlled", "hardCopyPresent", "correctionScale"] as const) if (m[k] !== "unknown") med[k] = m[k] === "yes";
@@ -216,8 +228,8 @@ export interface ExtractionOutput {
 }
 
 /**
- * One facts call first (warms the prompt cache for the packet), then the ten category calls
- * at bounded concurrency. Every call shares SYSTEM_PROMPT + the cached document block.
+ * One facts call first (warms the prompt cache for the packet), then the medications call alongside
+ * the ten category calls at bounded concurrency. Every call shares SYSTEM_PROMPT + the cached document block.
  */
 export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], concurrency = 4): Promise<ExtractionOutput> {
   const rx06 = rules.find((r) => r.id === "RX-06");
@@ -225,13 +237,16 @@ export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], 
   const base = { system: SYSTEM_PROMPT, pdfBase64 };
 
   const factsRaw = await llm.parse({ ...base, label: "facts", schema: FactsResultSchema, instruction: factsInstruction(rx06) });
-  const facts = toFacts(factsRaw);
 
   const jobs = CATEGORIES.map((cat) => ({ cat, rules: rules.filter((r) => r.category === cat && !COMPUTED_RULES.has(r.id)) })).filter((j) => j.rules.length > 0);
-  const results = await pool(jobs, concurrency, async (job) => {
-    const res = await llm.parse({ ...base, label: `category-${job.cat}`, schema: CategoryResultSchema, instruction: categoryInstruction(job.cat, job.rules) });
-    return { job, res };
-  });
+  const [medsRaw, results] = await Promise.all([
+    llm.parse({ ...base, label: "medications", schema: MedicationsResultSchema, instruction: medicationsInstruction() }),
+    pool(jobs, concurrency, async (job) => {
+      const res = await llm.parse({ ...base, label: `category-${job.cat}`, schema: CategoryResultSchema, instruction: categoryInstruction(job.cat, job.rules) });
+      return { job, res };
+    }),
+  ]);
+  const facts = toFacts(factsRaw, medsRaw);
 
   const byId = new Map<string, RuleAnswer>();
   const rx = toAnswer({ ...factsRaw.rx06, ruleId: "RX-06" });
@@ -249,6 +264,6 @@ export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], 
 
   return {
     extraction: { answers, medications: facts.medications, timing: facts.timing, patient: facts.patient, ...(facts.monitoringOrders ? { monitoringOrders: facts.monitoringOrders } : {}) },
-    medicationEvidence: factsRaw.medications.map((m) => ({ quote: m.quote, claimedPage: m.page })),
+    medicationEvidence: medsRaw.medications.map((m) => ({ quote: m.quote, claimedPage: m.page })),
   };
 }

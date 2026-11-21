@@ -48,6 +48,9 @@ export function createLlm(opts: { apiKey?: string; model?: string; client?: Anth
           },
         ],
         output_config: { format: zodOutputFormat(req.schema) },
+      }).catch((e: unknown) => {
+        // name the call so a failure in one of the ~13 parallel calls is diagnosable
+        throw new Error(`"${req.label}" call failed: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
       });
       if (msg.stop_reason === "refusal") throw new Error(`Model refused the "${req.label}" call (stop_reason=refusal)`);
       if (msg.stop_reason === "max_tokens") throw new Error(`"${req.label}" call hit max_tokens before finishing the structured output`);
