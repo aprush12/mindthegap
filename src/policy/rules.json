@@ -1,0 +1,1967 @@
+[
+  {
+    "id": "PAY-01",
+    "category": "PAY",
+    "criterion": "regulatory_screens",
+    "question": "Active prior authorization with approved length of stay?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "minApprovedDays": 5
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "5+ days, B"
+      },
+      "B": {
+        "requirement": {
+          "minApprovedDays": 7,
+          "ventMinApprovedDays": 10
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "7+ days, 10+ for vent, B"
+      },
+      "C": {
+        "requirement": {
+          "minApprovedDays": 5
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "5+ days, B"
+      }
+    }
+  },
+  {
+    "id": "PAY-02",
+    "category": "PAY",
+    "criterion": "regulatory_screens",
+    "question": "Three-midnight qualifying stay documented for traditional Medicare?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "qualifyingStay"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Required, B"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "qualifyingStay"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Required, B"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "qualifyingStay"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Required, B"
+      }
+    }
+  },
+  {
+    "id": "PAY-03",
+    "category": "PAY",
+    "criterion": "regulatory_screens",
+    "question": "Benefit day count known, day 21 co-insurance anticipated?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "dayCountKnown"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "Notify before day 21, R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "dayCountKnown"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "Notify before day 21, R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "dayCountKnown",
+            "financialCounselingArranged"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Financial counseling, C 72"
+      }
+    }
+  },
+  {
+    "id": "PAY-04",
+    "category": "PAY",
+    "criterion": "regulatory_screens",
+    "question": "Responsible or financially responsible party identified?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "partyIdentified"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "partyIdentified"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "partyIdentified"
+          ],
+          "atSigning": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "Required at signing, B"
+      }
+    }
+  },
+  {
+    "id": "PAY-05",
+    "category": "PAY",
+    "criterion": "regulatory_screens",
+    "question": "If Medicaid pending, application submitted with a reference?",
+    "appliesWhen": {
+      "field": "medicaidPending",
+      "equals": true
+    },
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "applicationSubmitted",
+            "referenceNumber"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "applicationSubmitted",
+            "referenceNumber"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAny": [
+            "referenceNumber",
+            "deposit"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Reference or deposit, B"
+      }
+    }
+  },
+  {
+    "id": "REG-01",
+    "category": "REG",
+    "criterion": "regulatory_screens",
+    "question": "PASRR Level I complete, Level II resolved if triggered?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "level1Complete"
+          ],
+          "level2IfTriggered": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "B"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "level1Complete"
+          ],
+          "level2IfTriggered": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "B"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "level1Complete"
+          ],
+          "level2IfTriggered": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "B, required for memory care"
+      }
+    }
+  },
+  {
+    "id": "REG-02",
+    "category": "REG",
+    "criterion": "regulatory_screens",
+    "question": "Code status documented, directive or MOLST if one exists?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "codeStatusDocumented"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "codeStatusDocumented"
+          ],
+          "ventRequiresAll": [
+            "molstSigned"
+          ],
+          "beforeArrival": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "preArrival": true,
+        "notes": "Before arrival, MOLST for vent, B"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "codeStatusDocumented"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      }
+    }
+  },
+  {
+    "id": "REG-03",
+    "category": "REG",
+    "criterion": "regulatory_screens",
+    "question": "Capacity documented, proxy or guardian if impaired?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "capacityDocumented"
+          ],
+          "proxyIfImpaired": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "capacityDocumented"
+          ],
+          "proxyIfImpaired": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "capacityDocumented"
+          ],
+          "proxyIfImpaired": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "appliesWhen": {
+          "field": "targetUnit",
+          "equals": "memory_care"
+        },
+        "notes": "Before memory care, B"
+      }
+    }
+  },
+  {
+    "id": "REG-04",
+    "category": "REG",
+    "criterion": "regulatory_screens",
+    "question": "Immunization dates and TB screening available?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "immunizationsAvailable",
+            "tbScreened"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "immunizationsAvailable",
+            "tbScreened"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "tbScreened"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "appliesWhen": {
+          "field": "targetUnit",
+          "equals": "memory_care"
+        },
+        "notes": "TB before secured unit, C 48"
+      }
+    }
+  },
+  {
+    "id": "ACU-01",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Ventilator dependent?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      },
+      "B": {
+        "requirement": {
+          "accepted": true,
+          "requiresAll": [
+            "weaningPlan"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Vent unit with weaning plan, C"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-02",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Tracheostomy present?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      },
+      "B": {
+        "requirement": {
+          "accepted": true,
+          "requiresAll": [
+            "size",
+            "airwayPlan"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "With size and airway plan, C"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-03",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "IV therapy, and what line type?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "acceptedLineTypes": [
+            "peripheral",
+            "midline",
+            "picc"
+          ],
+          "noStartAfter": "18:00"
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "PICC yes, no starts after 18:00, C"
+      },
+      "B": {
+        "requirement": {},
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "All line types, C"
+      },
+      "C": {
+        "requirement": {
+          "acceptedLineTypes": [
+            "peripheral",
+            "midline"
+          ],
+          "noStartAfter": "23:00"
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "None after 23:00, no central, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-04",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Dialysis, with a chair and transport arranged?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "accepted": true,
+          "outpatientOnly": true,
+          "requiresAll": [
+            "chairConfirmed",
+            "transportConfirmed"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Outpatient only, chair confirmed, B"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "chairConfirmed"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "In-house chair or outpatient, C"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-05",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Total parenteral nutrition?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "formula",
+            "labs"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "With formula and labs, C"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-06",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Insulin-requiring with a correction scale needing overnight coverage?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "scaleRequired": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Scale in hand before first meal, C 12"
+      },
+      "B": {
+        "requirement": {
+          "scaleRequired": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Facility protocol until scale arrives, C 24"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "capability",
+        "notes": "Not accepted, RN ends 23:00, B"
+      }
+    }
+  },
+  {
+    "id": "ACU-07",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Elopement risk, wandering dementia, behavioral need?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "No secured unit, B"
+      },
+      "B": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "No secured unit, B"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "carePlan"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Secured unit with care plan, C"
+      }
+    }
+  },
+  {
+    "id": "ACU-08",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "One-to-one observation required?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "minSittersAvailable": 1
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "None available, B"
+      },
+      "B": {
+        "requirement": {
+          "minSittersAvailable": 1
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "One available, check roster, C"
+      },
+      "C": {
+        "requirement": {
+          "minSittersAvailable": 1,
+          "orUnit": "secured_memory_care"
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Secured unit in place of sitter, C"
+      }
+    }
+  },
+  {
+    "id": "ACU-09",
+    "category": "ACU",
+    "criterion": "acuity_vs_staffing",
+    "question": "Weight within the equipment limit?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "maxWeightKg": 159
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "159 kg, B"
+      },
+      "B": {
+        "requirement": {
+          "maxWeightKg": 227
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "227 kg, B"
+      },
+      "C": {
+        "requirement": {
+          "maxWeightKg": 136
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "136 kg, B"
+      }
+    }
+  },
+  {
+    "id": "INF-01",
+    "category": "INF",
+    "criterion": "infection_control",
+    "question": "MDRO, C. difficile or isolation status documented?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "acceptedTypes": [
+            "contact"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "Private room for contact, C"
+      },
+      "B": {
+        "requirement": {
+          "acceptedTypes": [
+            "contact",
+            "droplet"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "Contact and droplet available, C"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "capability",
+        "notes": "No isolation rooms, B"
+      }
+    }
+  },
+  {
+    "id": "INF-02",
+    "category": "INF",
+    "criterion": "infection_control",
+    "question": "Antibiotics with indication, course and stop date?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "indication",
+            "course",
+            "stopDate"
+          ],
+          "ivRequiresAll": [
+            "lineOrders"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Oral yes, IV needs line orders, C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "indication",
+            "course",
+            "stopDate"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Oral and IV, C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "indication",
+            "course",
+            "stopDate"
+          ],
+          "oralOnly": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Oral only, C 24"
+      }
+    }
+  },
+  {
+    "id": "INF-03",
+    "category": "INF",
+    "criterion": "infection_control",
+    "question": "Isolation room physically available tonight?",
+    "appliesWhen": {
+      "field": "isolationRequired",
+      "equals": true
+    },
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "minIsolationRoomsAvailable": 1
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "1 available, B"
+      },
+      "B": {
+        "requirement": {
+          "minIsolationRoomsAvailable": 1
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "3 available, R"
+      },
+      "C": {
+        "requirement": {
+          "minIsolationRoomsAvailable": 1
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "0 available, B"
+      }
+    }
+  },
+  {
+    "id": "RX-01",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Every discharge medication on the formulary?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "allOnFormulary": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "P&T exception, C 72"
+      },
+      "B": {
+        "requirement": {
+          "allOnFormulary": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Broad formulary, C 24"
+      },
+      "C": {
+        "requirement": {
+          "allOnFormulary": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 96,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 96,
+        "resolvable": "sender",
+        "notes": "Narrow formulary, C 96"
+      }
+    }
+  },
+  {
+    "id": "RX-02",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Will the first dose land before it is due, given the cutoff?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "firstDoseBeforeDue": true
+        },
+        "notMetDecision": "conditional",
+        "unknownDecision": "conditional",
+        "resolvable": "sender",
+        "notes": "Cutoff 18:00, limited kit, C"
+      },
+      "B": {
+        "requirement": {
+          "firstDoseBeforeDue": true
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "Cutoff 22:00, on-call pharmacist, R"
+      },
+      "C": {
+        "requirement": {
+          "firstDoseBeforeDue": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Cutoff 16:00, next day 11:00, B"
+      }
+    }
+  },
+  {
+    "id": "RX-03",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Any medication requiring payor prior authorization?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "noPayorPA": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "DOAC and SGLT2, C 48"
+      },
+      "B": {
+        "requirement": {
+          "noPayorPA": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "DOAC, in house, C 24"
+      },
+      "C": {
+        "requirement": {
+          "noPayorPA": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "DOAC, SGLT2, ARNI, C 72"
+      }
+    }
+  },
+  {
+    "id": "RX-04",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Controlled substances with a signed hard copy?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "controlledRequireHardCopy": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "B"
+      },
+      "B": {
+        "requirement": {
+          "controlledRequireHardCopy": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "B"
+      },
+      "C": {
+        "requirement": {
+          "controlledRequireHardCopy": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "B"
+      }
+    }
+  },
+  {
+    "id": "RX-05",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Any therapeutic interchange to the stocked agent?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "noInterchange": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Glargine to detemir, C 12"
+      },
+      "B": {
+        "requirement": {
+          "noInterchange": true
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "Glargine stocked, R"
+      },
+      "C": {
+        "requirement": {
+          "noInterchange": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Glargine to NPH, C 24"
+      }
+    }
+  },
+  {
+    "id": "RX-06",
+    "category": "RX",
+    "criterion": "pharmacy_operations",
+    "question": "Signed physician order set for every medication?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "allSigned"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "C 12"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "allSigned"
+          ],
+          "beforeArrival": true
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "preArrival": true,
+        "appliesWhen": {
+          "field": "targetUnit",
+          "in": [
+            "complex_medical",
+            "vent_trach"
+          ]
+        },
+        "notes": "Before arrival for complex, B"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "allSigned"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      }
+    }
+  },
+  {
+    "id": "SKN-01",
+    "category": "SKN",
+    "criterion": "skin_wounds",
+    "question": "Every wound with stage, measurements, site and treatment order?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "stage",
+            "measurements",
+            "site",
+            "treatmentOrder"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "stage",
+            "measurements",
+            "site",
+            "treatmentOrder",
+            "photograph"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Plus photograph, C 12"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "stage",
+            "measurements",
+            "site",
+            "treatmentOrder"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      }
+    }
+  },
+  {
+    "id": "SKN-02",
+    "category": "SKN",
+    "criterion": "skin_wounds",
+    "question": "Each wound explicitly documented as present on admission?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "presentOnAdmissionStated",
+            "confirmed"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Stated and confirmed, C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "presentOnAdmissionStated",
+            "photographed"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Stated and photographed, C 12"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "presentOnAdmissionStated",
+            "confirmed"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Stated and confirmed, C 24"
+      }
+    }
+  },
+  {
+    "id": "SKN-03",
+    "category": "SKN",
+    "criterion": "skin_wounds",
+    "question": "Specialty surface or wound vac needed?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "acceptedTypes": [
+            "low_air_loss",
+            "vac"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "Low air loss and vac, C 48"
+      },
+      "B": {
+        "requirement": {},
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Both in house, C 24"
+      },
+      "C": {
+        "requirement": {
+          "notAcceptedTypes": [
+            "vac"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Vac not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "THR-01",
+    "category": "THR",
+    "criterion": "therapy",
+    "question": "Weight-bearing status documented?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "weightBearingDocumented"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "weightBearingDocumented"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "weightBearingDocumented"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "C 48"
+      }
+    }
+  },
+  {
+    "id": "THR-02",
+    "category": "THR",
+    "criterion": "therapy",
+    "question": "Prior level of function with PT, OT and speech recommendations?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "priorLevelOfFunction",
+            "ptRecommendation",
+            "otRecommendation",
+            "speechRecommendation"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "priorLevelOfFunction",
+            "ptRecommendation",
+            "otRecommendation",
+            "speechRecommendation"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "priorLevelOfFunction",
+            "ptRecommendation"
+          ],
+          "otSpeechLeadDays": 5
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 120,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 120,
+        "resolvable": "sender",
+        "notes": "PT only, 5-day lead, C 120"
+      }
+    }
+  },
+  {
+    "id": "THR-03",
+    "category": "THR",
+    "criterion": "therapy",
+    "question": "Required equipment identified and available?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "identified",
+            "settings"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "CPAP settings needed, C 12"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "identified"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Oxygen, CPAP, BiPAP with RT, C 12"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "identified",
+            "patientOwned"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Patient-owned device, C 24"
+      }
+    }
+  },
+  {
+    "id": "NUT-01",
+    "category": "NUT",
+    "criterion": "nutrition_swallowing",
+    "question": "Diet order consistent with the swallow evaluation?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "holdSaferTexture": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Hold at safer texture, C 12"
+      },
+      "B": {
+        "requirement": {
+          "speechOnSite": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Speech on site to re-evaluate, C 12"
+      },
+      "C": {
+        "requirement": {
+          "accepted": false
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "No speech on site, conflict not accepted, B"
+      }
+    }
+  },
+  {
+    "id": "NUT-02",
+    "category": "NUT",
+    "criterion": "nutrition_swallowing",
+    "question": "If tube fed, formula, rate, flushes and tube type?",
+    "appliesWhen": {
+      "field": "tubeFed",
+      "equals": true
+    },
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "acceptedTypes": [
+            "peg"
+          ],
+          "requiresAll": [
+            "formula",
+            "rate",
+            "flushes",
+            "type"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "PEG yes, NG no, C 12"
+      },
+      "B": {
+        "requirement": {
+          "acceptedTypes": [
+            "peg",
+            "pej",
+            "ng"
+          ],
+          "requiresAll": [
+            "formula",
+            "rate",
+            "flushes",
+            "type"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "PEG, PEJ, NG, C 12"
+      },
+      "C": {
+        "requirement": {
+          "acceptedTypes": [
+            "peg"
+          ],
+          "requiresAll": [
+            "formula",
+            "rate",
+            "flushes",
+            "type"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "PEG yes, NG no, C 24"
+      }
+    }
+  },
+  {
+    "id": "MON-01",
+    "category": "MON",
+    "criterion": "monitoring_transitions",
+    "question": "Standing order for every medication requiring lab monitoring?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "standingOrders"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Narrative is not an order, C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "standingOrders"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "standingOrders"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Draws twice weekly, C 72"
+      }
+    }
+  },
+  {
+    "id": "MON-02",
+    "category": "MON",
+    "criterion": "monitoring_transitions",
+    "question": "Glucose frequency and hypoglycemia parameters specified?",
+    "appliesWhen": {
+      "field": "insulinRequired",
+      "equals": true
+    },
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "frequency",
+            "hypoglycemiaParameters"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 12,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 12,
+        "resolvable": "sender",
+        "notes": "Before first meal, C 12"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "frequency",
+            "hypoglycemiaParameters"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "Facility protocol interim, C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "frequency",
+            "hypoglycemiaParameters"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "block",
+        "resolvable": "sender",
+        "notes": "Before admission, B"
+      }
+    }
+  },
+  {
+    "id": "MON-03",
+    "category": "MON",
+    "criterion": "monitoring_transitions",
+    "question": "Telemetry, daily weights or saturation monitoring required?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "notAcceptedTypes": [
+            "continuous_telemetry"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "No continuous telemetry, B"
+      },
+      "B": {
+        "requirement": {},
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "All available, C"
+      },
+      "C": {
+        "requirement": {
+          "acceptedTypes": [
+            "daily_weights",
+            "spot_sat"
+          ]
+        },
+        "notMetDecision": "block",
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "capability",
+        "notes": "Daily weights and spot only, B"
+      }
+    }
+  },
+  {
+    "id": "FUP-01",
+    "category": "FUP",
+    "criterion": "monitoring_transitions",
+    "question": "Every pending result with a named recipient?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "namedRecipient"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "namedRecipient"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 24,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 24,
+        "resolvable": "sender",
+        "notes": "C 24"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "namedRecipient"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "C 48"
+      }
+    }
+  },
+  {
+    "id": "FUP-02",
+    "category": "FUP",
+    "criterion": "monitoring_transitions",
+    "question": "Primary care physician of record identified?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAny": [
+            "pcpOfRecord",
+            "medicalDirector"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Or medical director, C 72"
+      },
+      "B": {
+        "requirement": {
+          "requiresAny": [
+            "pcpOfRecord",
+            "medicalDirector"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Or medical director, C 72"
+      },
+      "C": {
+        "requirement": {
+          "requiresAny": [
+            "pcpOfRecord",
+            "medicalDirector"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Or medical director, C 72"
+      }
+    }
+  },
+  {
+    "id": "FUP-03",
+    "category": "FUP",
+    "criterion": "monitoring_transitions",
+    "question": "Appointments with a date, location and arranged transport?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "dateLocation",
+            "transport"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "C 48"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "dateLocation",
+            "transport"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 48,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 48,
+        "resolvable": "sender",
+        "notes": "C 48"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "dateLocation",
+            "transport"
+          ]
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 72,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 72,
+        "resolvable": "sender",
+        "notes": "Limited vehicles, C 72"
+      }
+    }
+  },
+  {
+    "id": "DCP-01",
+    "category": "DCP",
+    "criterion": "monitoring_transitions",
+    "question": "Discharge destination and home environment documented?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "destinationDocumented"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "destinationDocumented"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "destinationDocumented"
+          ],
+          "placementPathIfNoSafeHome": true
+        },
+        "notMetDecision": "conditional",
+        "windowHours": 120,
+        "unknownDecision": "conditional",
+        "unknownWindowHours": 120,
+        "resolvable": "sender",
+        "notes": "Placement path if no safe home, C 120"
+      }
+    }
+  },
+  {
+    "id": "DCP-02",
+    "category": "DCP",
+    "criterion": "monitoring_transitions",
+    "question": "Bed hold policy explained and acknowledged?",
+    "perFacility": {
+      "A": {
+        "requirement": {
+          "requiresAll": [
+            "bedHoldAcknowledged"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "B": {
+        "requirement": {
+          "requiresAll": [
+            "bedHoldAcknowledged"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      },
+      "C": {
+        "requirement": {
+          "requiresAll": [
+            "bedHoldAcknowledged"
+          ]
+        },
+        "notMetDecision": "review",
+        "unknownDecision": "review",
+        "resolvable": "sender",
+        "notes": "R"
+      }
+    }
+  }
+]

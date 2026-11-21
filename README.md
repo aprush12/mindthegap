@@ -103,3 +103,29 @@ Policy changes about once a year; capacity changes every shift. They are separat
 | `src/types.ts` | `Extraction` and `RuleAnswer`, the contract the stage 4 extraction layer must produce |
 
 Edit capacity through `PUT /api/facilities/:id/capacity` or by hand. Policy edits are code changes (rebuild from the facility's own manual before any real use).
+
+## Engine
+
+`src/engine/` is pure (no I/O, no `Date.now()`; the clock is injected as `now`, used only when `timing.arrivalAt` is absent). `evaluateFacility(extraction, facilityId, policy, capacity, now)` returns the 43-item checklist; `screen(...)` in `verdict.ts` rolls up all three facilities plus `criteriaView`. RX-01 to RX-05 and INF-03 are computed from the medication list, formulary, lead times and capacity, not from LLM answers. A `patient` field that an `appliesWhen` predicate reads and that is `undefined` never satisfies it, so the extraction layer must populate `patient.*` (targetUnit, medicaidPending, tubeFed, insulinRequired); `isolationRequired` is derived from INF-01.
+
+## Unknown-decision derivations
+
+Default: `unknownDecision` equals `notMetDecision` when that is `conditional` or `review` (same window). For rules whose not-met decision is `block`, the default is `conditional` at 24h (assumption, spec silent), except the pinned cells below, where an unknown blocks.
+
+Pinned to block on unknown (from "How to read" and the Elena Mercado narrative):
+- PAY-01 at A, B, C: pending or missing authorization blocks.
+- REG-01 at A, B, C: PASRR never mentioned blocks ("you cannot place a patient on an assumption").
+- INF-01 at A, B, C: undocumented isolation/MDRO status blocks at all three (Bayview and Harborview not-met is conditional, so this is a deliberate divergence from the default).
+- RX-06 at B: orders required before arrival for complex medical and vent admissions.
+- MON-02 at C: glucose parameters required before admission.
+- PAY-04 at C: responsible party required at signing.
+- ACU-06 at C: not accepted at all; unknown also blocks (assumption extending the Elena case).
+
+Pinned to conditional despite a stricter policy: REG-02 at B (not met = block, unknown = conditional 24h) per design note 1.
+
+Assumptions (spec silent, conditional 24h on unknown):
+- Unknown on any other not-met-is-block rule: PAY-02, PAY-05 (C), REG-03 (C), ACU-01/02/04/05/07/09, ACU-03 (C), SKN-03 (C), NUT-01 (C), MON-03 (A, C).
+- Cells written "C" with no hours (ACU-01/02/04/05 at B, ACU-03 at A and B, ACU-07 at C, ACU-08 at B and C, INF-01 at A and B, MON-03 at B, RX-02 at A) default to a 24h window. RX-02 at A has none: its resolve-by is the earliest at-risk first dose.
+- Vancomycin IV at A is "NF" without hours: 72h assumed. Harborview `nextDelivery` "06:00" and Bayview emergency kit `includes: []` are assumptions.
+
+Verdict note: the spec shows Bayview as "conditional accept" with three blocking items, which the plain rule "any block means blocked" cannot produce. Cells carry `preArrival` (set where the spec says before arrival: RX-06 and REG-02 at B). `blocked` requires a `preArrival` block; other sender-side blocks are listed in `blocking` but cleared during admission, giving `conditional_accept`. A capacity blocker `CAP-BEDS` is added when the target unit has no bed tonight.
