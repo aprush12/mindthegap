@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mind the Gap</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header>
+  <h1>Mind the Gap</h1>
+  <p class="sub">Drop in a discharge packet. See which nursing home can take the patient, and what to ask the hospital.</p>
+</header>
+
+<main>
+  <section class="entry" aria-label="Choose a packet">
+    <div class="box">
+      <h2>1. Upload a packet</h2>
+      <label id="drop" class="drop" tabindex="0">
+        <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+        <strong>Drop a PDF here</strong>
+        <span>or tap to choose a file</span>
+      </label>
+    </div>
+    <div class="box">
+      <h2>Or try a sample</h2>
+      <div id="samples" class="samples"></div>
+    </div>
+  </section>
+
+  <section aria-label="Choose a facility">
+    <h2>2. Pick a nursing home</h2>
+    <div id="facilities" class="facs" role="radiogroup"></div>
+  </section>
+
+  <section id="results" aria-live="polite" aria-label="Results">
+    <h2>3. Result</h2>
+    <p class="empty">Pick a packet above and the result shows up here.</p>
+  </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

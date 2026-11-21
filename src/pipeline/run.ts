@@ -21,6 +21,8 @@ export interface ParseRecord {
   createdAt: string;
   completedAt?: string;
   error?: string;
+  /** "live": extracted by the model. "fixture": the offline demo path (golden test fixture, no model). */
+  source?: "live" | "fixture";
   arrivalAt?: string;
   /** The `now` the engine evaluated against (arrival if extracted, else wall clock). */
   evaluatedAt?: string;
@@ -113,6 +115,7 @@ export async function runPipeline(opts: RunOptions): Promise<ParseRecord> {
     const done: ParseRecord = {
       ...rec,
       status: "complete",
+      source: "live",
       completedAt: new Date().toISOString(),
       ...(anchored.timing.arrivalAt ? { arrivalAt: anchored.timing.arrivalAt } : {}),
       evaluatedAt: now.toISOString(),

@@ -21,6 +21,10 @@ npm run make-sample -- harold    # synthetic Harold packet (paperwork complete) 
 
 Node 20+. Stack: Hono, Zod, TypeScript (strict, ESM), Vitest.
 
+## Demo UI
+
+`GET /` serves the repo's built-in demo page (`public/`, plain HTML/CSS/JS, no build step): upload a PDF or click a sample packet, pick one of the three facilities (or all three), and read the result. `POST /api/parses/sample/:name` (`elena`, `harold`, `carepatron`, `cdph`) runs a PDF from `samples/` (generate the synthetic ones with `npm run make-sample`). With no `ANTHROPIC_API_KEY`, the two synthetic samples run the offline golden-fixture path and the record carries `"source": "fixture"` (live runs say `"live"`). This page is only a demo; the production UI is a separate workstream.
+
 ## API contract
 
 All bodies are JSON unless noted. Stage 1 ships the facility endpoints; the parse endpoints return `501 {"error":"pipeline lands in a later stage"}` until stage 4 but their shape is fixed here so the UI can build against it.

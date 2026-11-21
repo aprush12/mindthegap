@@ -1,5 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { Hono } from "hono";
+import { runFixtureParse, type FixtureName } from "./demo/fixture.js";
 import facilitiesJson from "./policy/facilities.json" with { type: "json" };
 import { CapacitySchema, FacilitiesSchema, FacilityIdSchema, CapacitySnapshotSchema } from "./policy/schema.js";
 import { createLlm, type Llm } from "./pipeline/anthropic.js";
@@ -23,6 +25,22 @@ export interface AppDeps {
 
 export const facilityNames = () => Object.fromEntries(facilities.map((f) => [f.id, f.name]));
 
+const PUBLIC_DIR = new URL("../public/", import.meta.url);
+const STATIC: Record<string, [string, string]> = {
+  "/": ["index.html", "text/html; charset=utf-8"],
+  "/app.css": ["app.css", "text/css; charset=utf-8"],
+  "/app.js": ["app.js", "text/javascript; charset=utf-8"],
+};
+/** Demo samples: name -> file under samples/ (override the folder with SAMPLES_DIR). */
+const SAMPLES: Record<string, { file: string; fixture?: FixtureName }> = {
+  elena: { file: "synthetic-elena-packet.pdf", fixture: "elena" },
+  harold: { file: "synthetic-harold-packet.pdf", fixture: "harold" },
+  carepatron: { file: "carepatron-discharge-summary-example.pdf" },
+  cdph: { file: "cdph-interfacility-transfer-comprehensive.pdf" },
+};
+const samplePath = (name: string) => path.resolve(process.env.SAMPLES_DIR ?? "samples", SAMPLES[name]!.file);
+const sampleExists = (name: string) => readFile(samplePath(name)).then(() => true, () => false);
+
 const validId = (id: string) => /^[\w-]+$/.test(id);
 const isPdf = (b: Uint8Array) => b.length > 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
 
@@ -30,16 +48,25 @@ export function createApp(deps: AppDeps = {}) {
   const app = new Hono();
   const makeLlm = deps.llm ?? (() => createLlm());
 
+  for (const [route, [file, type]] of Object.entries(STATIC)) {
+    app.get(route, async (c) => c.body(await readFile(new URL(file, PUBLIC_DIR)), 200, { "Content-Type": type }));
+  }
+
+  app.get("/api/samples", async (c) =>
+    c.json(Object.fromEntries(await Promise.all(Object.keys(SAMPLES).map(async (n) => [n, await sampleExists(n)] as const)))),
+  );
+
   app.get("/health", (c) => c.json({ ok: true }));
 
-  app.post("/api/parses", async (c) => {
-    const body = await c.req.parseBody().catch(() => null);
-    const file = body?.file;
-    if (!(file instanceof File)) return c.json({ error: "multipart field \"file\" (a PDF) is required" }, 400);
-    const pdf = new Uint8Array(await file.arrayBuffer());
-    if (!isPdf(pdf)) return c.json({ error: "file is not a PDF" }, 400);
+  async function startParse(pdf: Uint8Array, fixture?: FixtureName): Promise<string> {
     const parseId = newParseId();
     await saveFile(parseId, "packet.pdf", pdf);
+    if (fixture) {
+      await createRecord(parseId); // exists before the first poll
+      const run = runFixtureParse(parseId, pdf, fixture); // started before the optional call: `?.()` skips evaluating its args
+      deps.onRun?.(run);
+      return parseId;
+    }
     const rec = await createRecord(parseId);
     const run = (async () => {
       let llm: Llm;
@@ -52,7 +79,26 @@ export function createApp(deps: AppDeps = {}) {
       await runPipeline({ parseId, pdf, llm });
     })();
     deps.onRun?.(run);
-    return c.json({ parseId }, 202);
+    return parseId;
+  }
+
+  app.post("/api/parses", async (c) => {
+    const body = await c.req.parseBody().catch(() => null);
+    const file = body?.file;
+    if (!(file instanceof File)) return c.json({ error: "multipart field \"file\" (a PDF) is required" }, 400);
+    const pdf = new Uint8Array(await file.arrayBuffer());
+    if (!isPdf(pdf)) return c.json({ error: "file is not a PDF" }, 400);
+    return c.json({ parseId: await startParse(pdf) }, 202);
+  });
+
+  app.post("/api/parses/sample/:name", async (c) => {
+    const name = c.req.param("name");
+    if (!Object.hasOwn(SAMPLES, name)) return c.json({ error: "unknown sample" }, 404);
+    const pdf = await readFile(samplePath(name)).then((b) => new Uint8Array(b), () => undefined);
+    if (!pdf) return c.json({ error: `Sample PDF not found locally (${SAMPLES[name]!.file}). Run \`npm run make-sample\` to generate it.` }, 404);
+    // No API key (and no injected LLM): the two synthetic packets run the offline fixture path; everything else fails with the clear error.
+    const offline = !process.env.ANTHROPIC_API_KEY && !deps.llm && SAMPLES[name]!.fixture;
+    return c.json({ parseId: await startParse(pdf, offline || undefined) }, 202);
   });
 
   app.get("/api/parses/:id", async (c) => {
