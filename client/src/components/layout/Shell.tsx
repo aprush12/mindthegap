@@ -85,7 +85,7 @@ export function AppBar({ side }: { side: 'aftercare' | 'hospital' }) {
                 {org}
               </T>
             </View>
-          ) : (
+          ) : narrow ? null : (
             <T size={14} color={color.textSecondary}>
               {org}
             </T>

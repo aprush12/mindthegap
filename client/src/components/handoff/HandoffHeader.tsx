@@ -23,7 +23,7 @@ export function HandoffHeader({ view, tab, onTab, threadCount }: { view: Handoff
     <View style={{ gap: 12 }}>
       <Breadcrumb parent="Handoffs" parentHref="/aftercare" current={view.patient.name} />
       <IdentityBanner view={view} onOpenPacket={() => go('packet')} />
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', columnGap: 24, flexWrap: 'wrap' }}>
         <Tabs
           tabs={[
             { key: 'brief', label: 'Brief' },
@@ -34,9 +34,11 @@ export function HandoffHeader({ view, tab, onTab, threadCount }: { view: Handoff
           active={tab}
           onChange={go}
         />
-        <View style={{ marginLeft: width < 900 ? 0 : 'auto', paddingBottom: 12 }}>
-          <StatusTrail view={view} />
-        </View>
+        {width < 700 ? null : (
+          <View style={{ marginLeft: width < 900 ? 0 : 'auto', paddingBottom: 12, flexShrink: 1, minWidth: 0, maxWidth: '100%' }}>
+            <StatusTrail view={view} />
+          </View>
+        )}
       </View>
     </View>
   );

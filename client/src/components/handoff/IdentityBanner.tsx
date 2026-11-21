@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import type { HandoffView } from '../../lib/api';
 import { fmtFull } from '../../lib/clock';
 import { color, radius, shadow } from '../../theme/tokens';
@@ -14,9 +14,10 @@ import { Mono, T } from '../ui/Text';
  */
 export function IdentityBanner({ view, onOpenPacket, compact }: { view: HandoffView; onOpenPacket?: () => void; compact?: boolean }) {
   const { patient, handoff, from, to } = view;
+  const narrow = useWindowDimensions().width < 700;
   if (compact) return <IdentityBannerPhone name={patient.name} initials={patient.initials} dob={patient.dob} age={patient.ageYears} />;
   return (
-    <View accessibilityLabel={`Patient ${patient.name}, date of birth ${patient.dob}, MRN ${patient.mrn}`} style={{ backgroundColor: color.bgSurface, borderWidth: 1, borderColor: color.borderDefault, borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+    <View accessibilityLabel={`Patient ${patient.name}, date of birth ${patient.dob}, MRN ${patient.mrn}`} style={{ backgroundColor: color.bgSurface, borderWidth: 1, borderColor: color.borderDefault, borderRadius: radius.lg, paddingVertical: narrow ? 12 : 14, paddingHorizontal: narrow ? 14 : 20, flexDirection: 'row', alignItems: 'center', gap: narrow ? 10 : 24, flexWrap: 'wrap' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         <Avatar initials={patient.initials} />
         <View style={{ gap: 2 }}>
@@ -33,16 +34,21 @@ export function IdentityBanner({ view, onOpenPacket, compact }: { view: HandoffV
           </View>
         </View>
       </View>
-      <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: color.borderDefault }} />
-      <View style={{ gap: 2 }}>
+      {narrow ? null : <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: color.borderDefault }} />}
+      {narrow ? (
+        <T size={13} color={color.textSecondary} style={{ flexBasis: '100%' }}>
+          {patient.reasonForStay} · Discharged {fmtFull(handoff.dischargedAt)} · {from.short} → {to.short}
+        </T>
+      ) : null}
+      {narrow ? null : <View style={{ gap: 2, flexShrink: 1 }}>
         <T size={12} weight={500} color={color.textTertiary}>
           Reason for stay
         </T>
         <T size={15} weight={500}>
           {patient.reasonForStay}
         </T>
-      </View>
-      <View style={{ gap: 2 }}>
+      </View>}
+      {narrow ? null : <View style={{ gap: 2, flexShrink: 1 }}>
         <T size={12} weight={500} color={color.textTertiary}>
           Discharged {fmtFull(handoff.dischargedAt)}
         </T>
@@ -55,10 +61,10 @@ export function IdentityBanner({ view, onOpenPacket, compact }: { view: HandoffV
             {to.name}
           </T>
         </View>
-      </View>
-      <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      </View>}
+      <View style={{ marginLeft: narrow ? 0 : 'auto', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <StatusPill status={handoff.status} />
-        {onOpenPacket ? <Button variant="secondary" size="md" icon="file-text" label={`Full packet · ${handoff.pageCount} pp`} onPress={onOpenPacket} fontSize={14} /> : null}
+        {onOpenPacket && !narrow ? <Button variant="secondary" size="md" icon="file-text" label={`Full packet · ${handoff.pageCount} pp`} onPress={onOpenPacket} fontSize={14} /> : null}
       </View>
     </View>
   );
