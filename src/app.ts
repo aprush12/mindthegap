@@ -32,6 +32,13 @@ export function createApp(deps: AppDeps = {}) {
   const makeLlm = deps.llm ?? (() => createLlm());
 
   app.get("/", (c) => c.html(uploadPage));
+  /** Synthetic sample packets (built by npm run make-sample) so testers have something to upload. */
+  app.get("/samples/:name", async (c) => {
+    const name = c.req.param("name");
+    if (!/^synthetic-(elena|harold)-packet\.pdf$/.test(name)) return c.json({ error: "not found" }, 404);
+    const bytes = await readFile(new URL(`../samples/${name}`, import.meta.url)).catch(() => null);
+    return bytes ? c.body(bytes, 200, { "content-type": "application/pdf", "content-disposition": `attachment; filename="${name}"` }) : c.json({ error: "sample not built" }, 404);
+  });
   app.get("/health", (c) => c.json({ ok: true }));
 
   app.post("/api/parses", async (c) => {

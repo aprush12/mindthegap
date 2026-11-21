@@ -45,6 +45,7 @@ export const uploadPage = `<!doctype html>
     <div id="status"></div>
     <div class="links" id="links"></div>
   </div>
+  <p class="note">No packet handy? Download a synthetic one: <a href="/samples/synthetic-elena-packet.pdf">Elena Mercado</a> · <a href="/samples/synthetic-harold-packet.pdf">Harold Jennings</a></p>
   <p class="note">Demo uses synthetic facilities and packets only. Do not upload real patient data.</p>
 </main>
 <script>

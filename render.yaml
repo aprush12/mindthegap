@@ -1,0 +1,16 @@
+# One-click Render deploy: Dashboard > New > Blueprint > pick this repo/branch, paste ANTHROPIC_API_KEY.
+services:
+  - type: web
+    name: mindthegap
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run make-sample && npm run make-sample -- harold
+    startCommand: npm run dev
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ANTHROPIC_MODEL
+        value: claude-fable-5-2
+      - key: ANTHROPIC_API_KEY
+        sync: false
