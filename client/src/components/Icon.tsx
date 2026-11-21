@@ -73,7 +73,7 @@ export interface IconProps {
 /** Decorative by default; always pair with a text label for status and priority. */
 export function Icon({ name, size = 16, color = tokens.textSecondary, strokeWidth = 1.75, fill = 'none' }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} aria-hidden>
       {PATHS[name].map((d, i) => (
         <Path key={i} d={d} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" fill={name === 'play' && fill !== 'none' ? fill : 'none'} />
       ))}
