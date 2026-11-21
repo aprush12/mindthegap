@@ -66,7 +66,7 @@ export function AppBar({ side }: { side: 'aftercare' | 'hospital' }) {
             </T>
           </Pressable>
         </Link>
-        <View accessibilityRole="menubar" style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+        <View accessibilityRole="menubar" style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', flexShrink: 1, minWidth: 0 }}>
           {links.map((l) => (
             <NavItem key={l.label} l={l} active={isActive(l)} />
           ))}
