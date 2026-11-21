@@ -110,7 +110,12 @@ export const BRIEFS: Brief[] = [
 ];
 
 export const MESSAGES: ThreadMessage[] = [
-  { id: 'm-sp-1', handoffId: 'h-sp', authorId: 'sam', at: '2026-11-21T10:02', text: 'Chest X-ray read came back: no change. No action needed.', status: 'sent' },
+  { id: 'seed-ml-1', handoffId: 'h-ml', authorId: 'system', at: '2026-11-20T10:15:02', text: 'Handoff sent by Sam Ortiz, RN (demo)', status: 'sent' },
+  { id: 'seed-ml-2', handoffId: 'h-ml', authorId: 'dana', at: '2026-11-20T11:06:30', text: 'Insulin glargine is listed on p.12 with no dose. Please confirm dose and timing.', quote: { kind: 'unclear', text: 'Insulin glargine listed with no dose', page: 12 }, status: 'sent' },
+  { id: 'seed-ml-3', handoffId: 'h-ml', authorId: 'sam', at: '2026-11-20T11:09:47', text: 'Checking with the prescribing team. Will confirm the dose here.', status: 'sent' },
+  { id: 'seed-ac-1', handoffId: 'h-ac', authorId: 'system', at: '2026-11-20T05:00:00', text: 'Handoff sent by Sam Ortiz, RN (demo)', status: 'sent' },
+  { id: 'seed-sp-1', handoffId: 'h-sp', authorId: 'system', at: '2026-11-19T15:45:00', text: 'Handoff sent by Sam Ortiz, RN (demo)', status: 'sent' },
+  { id: 'm-sp-1', handoffId: 'h-sp', authorId: 'sam', at: '2026-11-20T10:02', text: 'Chest X-ray read came back: no change. No action needed.', status: 'sent' },
 ];
 
 export const ACTIVITY: ActivityEvent[] = [
@@ -119,6 +124,8 @@ export const ACTIVITY: ActivityEvent[] = [
   { id: 'a3', handoffId: 'h-ml', at: '2026-11-20T10:15:12', actorId: 'system', action: 'delivered', detail: 'Oak Valley inbox' },
   { id: 'a4', handoffId: 'h-ml', at: '2026-11-20T11:02:33', actorId: 'dana', action: 'opened', detail: 'Brief and packet', privacy: true },
   { id: 'a5', handoffId: 'h-ml', at: '2026-11-20T11:10:05', actorId: 'dana', action: 'reviewed_item', detail: 'START apixaban · p.12' },
+  { id: 'a5b', handoffId: 'h-ml', at: '2026-11-20T11:06:30', actorId: 'dana', action: 'messaged', detail: 'Ask hospital · unclear item: insulin glargine listed with no dose (p.12)' },
+  { id: 'a5c', handoffId: 'h-ml', at: '2026-11-20T11:09:47', actorId: 'sam', action: 'messaged', detail: 'Reply about insulin glargine dose' },
   { id: 'a6', handoffId: 'h-ac', at: '2026-11-20T05:00:00', actorId: 'sam', action: 'sent', detail: 'Discharge packet · 41 pages' },
   { id: 'a7', handoffId: 'h-ac', at: '2026-11-20T09:01:00', actorId: 'system', action: 'escalated', detail: 'Not acknowledged by 09:00 · Riverside discharge team notified' },
   { id: 'a8', handoffId: 'h-sp', at: '2026-11-19T16:40:00', actorId: 'dana', action: 'acknowledged', detail: '2 critical items · p.6, p.2' },
