@@ -161,6 +161,9 @@ describe("api", () => {
 
     const page = (await (await app.request(`/api/parses/${parseId}/document/3`)).json()) as { text: string };
     expect(page.text).toContain("Authorization pending");
+    const sum = await app.request(`/api/parses/${parseId}/summary`);
+    expect(sum.status).toBe(200);
+    expect(await sum.text()).toContain("Referral screening summary");
     expect((await app.request(`/api/parses/${parseId}/document/99`)).status).toBe(404);
     expect((await app.request(`/api/parses/nope`)).status).toBe(404);
 

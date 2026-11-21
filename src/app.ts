@@ -5,6 +5,7 @@ import { CapacitySchema, FacilitiesSchema, FacilityIdSchema, CapacitySnapshotSch
 import { createLlm, type Llm } from "./pipeline/anthropic.js";
 import type { Page } from "./pipeline/extract-text.js";
 import { createRecord, newParseId, runPipeline, type ParseRecord } from "./pipeline/run.js";
+import { renderSummary } from "./report/summary.js";
 import { loadFile, saveFile } from "./store.js";
 
 const facilities = FacilitiesSchema.parse(facilitiesJson);
@@ -18,6 +19,8 @@ export interface AppDeps {
   /** Receives each background pipeline run (tests await it). */
   onRun?: (run: Promise<unknown>) => void;
 }
+
+export const facilityNames = () => Object.fromEntries(facilities.map((f) => [f.id, f.name]));
 
 const validId = (id: string) => /^[\w-]+$/.test(id);
 const isPdf = (b: Uint8Array) => b.length > 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
@@ -57,7 +60,13 @@ export function createApp(deps: AppDeps = {}) {
     return rec ? c.json(rec) : c.json({ error: "unknown parse" }, 404);
   });
 
-  app.get("/api/parses/:id/summary", (c) => c.json({ error: "summary lands in stage 5" }, 501));
+  app.get("/api/parses/:id/summary", async (c) => {
+    const id = c.req.param("id");
+    const rec = validId(id) ? await loadFile<ParseRecord>(id, "result.json") : undefined;
+    if (!rec) return c.json({ error: "unknown parse" }, 404);
+    if (rec.status !== "complete" || !rec.result) return c.json({ error: `parse is ${rec.status}`, status: rec.status }, 409);
+    return c.html(renderSummary({ parseId: rec.parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, facilityNames: facilityNames() }));
+  });
 
   app.get("/api/parses/:id/document/:page", async (c) => {
     const id = c.req.param("id");
