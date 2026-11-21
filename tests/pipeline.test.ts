@@ -205,3 +205,15 @@ describe("api", () => {
     expect(rec).toMatchObject({ status: "failed", error: "ANTHROPIC_API_KEY is not set" });
   });
 });
+
+describe("fonts route", () => {
+  it("serves only the two self-hosted typefaces", async () => {
+    const app = createApp();
+    const ok = await app.request("/fonts/space-grotesk.woff2");
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("content-type")).toBe("font/woff2");
+    expect((await app.request("/fonts/inter.woff2")).status).toBe(200);
+    expect((await app.request("/fonts/..%2Fpackage.json")).status).toBe(404);
+    expect((await app.request("/fonts/other.woff2")).status).toBe(404);
+  });
+});

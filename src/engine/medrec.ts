@@ -28,6 +28,14 @@ const context = (d: DoseChange) => {
   return c && !ISO.test(c) && c.length <= 60 ? c : undefined;
 };
 
+/** Doses can be whole sentences ("Sliding scale SC, per attached scale; With meals and at bedtime"): keep the ask readable. */
+const brief = (dose: string, max = 40) => {
+  const d = dose.trim().replace(/\s+/g, " ");
+  if (d.length <= max) return d;
+  const cut = d.slice(0, max).replace(/[\s,;:]+\S*$/, "");
+  return `${cut || d.slice(0, max)}…`;
+};
+
 const ev = (quote: string, page: number, verified?: boolean): { quote: string; page?: number } => ({ quote, ...(verified === false ? {} : { page }) });
 
 export function buildMedRec(ex: Extraction): MedRecItem[] {
@@ -43,8 +51,9 @@ export function buildMedRec(ex: Extraction): MedRecItem[] {
     out.push({
       id: `MEDREC:${name.toLowerCase()}`,
       med: m.name,
-      text: `${name} dose conflict: discharge list says ${d.listedDose}, last progress note says ${d.noteDose} — confirm before first dose${tail}`,
-      followUpAsk: `Confirm current ${name.toLowerCase()} dose: discharge list ${d.listedDose} vs ${src ?? "last progress note"} ${d.noteDose}`,
+      // the doses themselves are shown side by side on the page (from the evidence quotes); the line stays short
+      text: `Check the ${name} dose: the discharge list and a later note disagree${tail}`,
+      followUpAsk: `Which ${name.toLowerCase()} dose is current: "${brief(d.listedDose)}" on the discharge list, or "${brief(d.noteDose)}" in the ${src ?? "latest progress note"}?`,
       listedDose: d.listedDose,
       noteDose: d.noteDose,
       ...(due ? { dueBy: due } : {}),

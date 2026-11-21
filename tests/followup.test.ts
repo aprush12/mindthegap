@@ -64,7 +64,7 @@ describe("call sheet", () => {
   const result = screen(harold, policy, capacity, HAROLD_NOW);
   const sheet = buildCallSheet(result);
   it("lists facility-independent items once and facility items per facility, severity first", () => {
-    expect(sheet[0]).toEqual({ itemId: "MEDREC:torsemide", severity: "tonight", followUpAsk: expect.stringContaining("Confirm current torsemide dose") });
+    expect(sheet[0]).toEqual({ itemId: "MEDREC:torsemide", severity: "tonight", followUpAsk: expect.stringContaining("Which torsemide dose is current") });
     expect(sheet.filter((e) => e.itemId.startsWith("MEDREC:"))).toHaveLength(1);
     expect(sheet.filter((e) => !e.facilityId).every((e) => e.itemId.startsWith("MEDREC:") || e.itemId.startsWith("PKT-"))).toBe(true);
     expect(sheet.find((e) => e.facilityId === "A" && e.itemId === "MON-03")!.severity).toBe("capability");
@@ -104,21 +104,26 @@ describe("summary rendering of the new items", () => {
   const h = render(cases[1]);
   const e = render(cases[0]);
 
-  it("Harold: CONFIRM DOSE chip with the conflict and an Ask line; no packet gaps", () => {
-    expect(h.html).toContain("CONFIRM DOSE");
-    expect(h.html).toContain("Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg");
-    expect(h.html).toContain('<div class="ask">Ask: Confirm current torsemide dose');
-    expect(h.html).not.toContain("PACKET GAP");
-    expect(h.text).toContain("[CONFIRM DOSE] Torsemide dose conflict");
+  it("Harold: dose-check chip, both doses side by side and an Ask line; no packet gaps", () => {
+    expect(h.html).toContain('<span class="chip c-dose">Check dose</span>');
+    expect(h.html).toContain("Check the Torsemide dose: the discharge list and a later note disagree");
+    expect(h.html).toContain("<b>Ask the hospital:</b> Which torsemide dose is current");
+    // both doses are shown side by side as labelled packet quotes
+    expect(h.html).toContain("Discharge list · page");
+    expect(h.html).toContain("Later note · page");
+    expect(h.html).not.toContain("Missing from the packet");
+    expect(h.text).toContain("[CONFIRM DOSE] Check the Torsemide dose");
   });
-  it("Elena: PACKET GAP chip on each card, in the criteria grid and the text table; no CONFIRM DOSE", () => {
-    expect(e.html).not.toContain("CONFIRM DOSE");
-    expect((e.html.match(/<h4>Packet gaps<\/h4>/g) ?? []).length).toBe(3);
+  it("Elena: packet gaps shown once, in the criteria grid and the text table; no dose check", () => {
+    expect(e.html).not.toContain('class="chip c-dose"');
+    // facility-independent, so shown once below the three cards rather than repeated on each
+    expect((e.html.match(/<h2>Missing from the packet<\/h2>/g) ?? []).length).toBe(1);
+    expect((e.html.match(/<div class="gap">/g) ?? []).length).toBe(2);
     expect(e.html).toContain("Heart failure, but no daily-weights order in the packet");
-    expect(e.html).toContain("Ask: Send the signed physician order for daily weights");
+    expect(e.html).toContain("<b>Ask the hospital:</b> Send the signed physician order for daily weights");
     expect(e.html).toContain('<div class="cflag">');
     expect((e.text.match(/\[PACKET GAP\]/g) ?? []).length).toBe(6);
-    expect(e.html.indexOf("<h4>Packet gaps</h4>")).toBeGreaterThan(e.html.indexOf("</ol>"));
+    expect(e.html.indexOf("Missing from the packet")).toBeGreaterThan(e.html.indexOf("</ol>"));
   });
   it("leaks no ISO timestamps", () => {
     for (const out of [h.html, h.text, e.html, e.text]) expect(out).not.toMatch(/\d{4}-\d{2}-\d{2}T|T\d{2}:\d{2}|\d{2}:\d{2}:\d{2}/);

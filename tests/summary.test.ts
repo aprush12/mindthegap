@@ -33,7 +33,7 @@ describe("renderSummary", () => {
   it("lists blocking items with rule id, question and evidence page, and unknowns as such", () => {
     expect(html).toContain("PAY-01");
     expect(html).toContain("Authorization pending with payor");
-    expect(html).toContain("(page 4)");
+    expect(html).toContain("Page 4");
     expect(html).toContain("REG-01");
     expect(html).toContain("No supporting passage in the record.");
   });
@@ -65,7 +65,7 @@ describe("What matters most", () => {
   const html = renderSummary(input);
   it("is the first section, above the verdict table and the checklist", () => {
     expect(html).toContain("What matters most");
-    expect(html.indexOf("What matters most")).toBeLessThan(html.indexOf("<h2>Verdicts</h2>"));
+    expect(html.indexOf("What matters most")).toBeLessThan(html.indexOf("<h3>Verdicts</h3>"));
     expect(html.indexOf("What matters most")).toBeLessThan(html.indexOf("Blocking items ("));
     expect(html).toContain(headline.patientSnapshot);
   });
@@ -88,7 +88,8 @@ describe("What matters most", () => {
   });
   it("renders big verdict badges, chips and a collapsed medication timing detail per facility", () => {
     expect(html).toContain('class="badge b-conditional_accept"');
-    expect(html).toContain("CAN'T DO HERE");
+    expect(html).toContain("Yes, if…");
+    expect(html).toContain('<span class="chip c-cap">Can\'t do here</span>');
     expect(html).toContain("<details class=\"meddetail\"><summary>Medication timing detail</summary>");
     expect((html.match(/<details class="meddetail">/g) ?? []).length).toBe(3);
     expect(html).not.toContain("<details open");
@@ -98,7 +99,9 @@ describe("What matters most", () => {
   });
   it("puts the snapshot first and the cards before everything else", () => {
     expect(html.indexOf(headline.patientSnapshot)).toBeLessThan(html.indexOf('class="card '));
-    expect(headline.patientSnapshot).toBe("71.4 kg, insulin-dependent, 7 discharge medications, wound care needed, referred for complex medical");
+    expect(headline.patientSnapshot).toBe("Heart failure, Insulin-dependent, Wound care needed, 7 discharge medications, 71.4 kg, Referred for complex medical care");
+    // shown as one chip per fact
+    expect(html).toContain("<li>Heart failure</li><li>Insulin-dependent</li>");
   });
   it("never shows ISO/UTC timestamps in the page or the text table", () => {
     const t = renderTextTable(input);

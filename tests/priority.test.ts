@@ -35,7 +35,7 @@ describe("prioritize (Elena)", () => {
         expect(c.text.length).toBeLessThan(110);
       }
     }
-    expect(p.A.find((c) => c.id === "RX-02")!.text).toMatch(/^First doses at risk.*past pharmacy cutoff.*worst: Entresto, needs 72-hr exception/);
+    expect(p.A.find((c) => c.id === "RX-02")!.text).toMatch(/^Arrives after pharmacy cutoff: first doses may be late.*worst: Entresto, needs 72-hr exception/);
     expect(p.A.find((c) => c.id === "ACU-06")!.text).toContain("obtain before first meal");
     expect(p.A.find((c) => c.id === "RX-06")!.text).toBe("Physician orders are unsigned; chase the hospital for signatures");
     expect(p.A.find((c) => c.id === "PAY-01")!.text).toBe("Insurance authorization still pending");

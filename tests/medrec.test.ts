@@ -19,8 +19,8 @@ describe("medication reconciliation (MEDREC)", () => {
   it("builds one facility-independent item per med with a dose change", () => {
     expect(items).toHaveLength(1);
     expect(items[0].id).toBe("MEDREC:torsemide");
-    expect(items[0].text).toBe("Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose");
-    expect(items[0].followUpAsk).toBe("Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg");
+    expect(items[0].text).toBe("Check the Torsemide dose: the discharge list and a later note disagree");
+    expect(items[0].followUpAsk).toBe('Which torsemide dose is current: "40 mg" on the discharge list, or "60 mg" in the 17 Nov cardiology progress note?');
     expect(items[0].evidence).toEqual([{ quote: "Torsemide 40 mg", page: 21 }, { quote: "increased torsemide to 60 mg daily", page: 11 }]);
   });
 

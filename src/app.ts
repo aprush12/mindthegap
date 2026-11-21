@@ -24,6 +24,11 @@ export interface AppDeps {
 
 export const facilityNames = () => Object.fromEntries(facilities.map((f) => [f.id, f.name]));
 
+const FONTS: Record<string, string> = {
+  "space-grotesk.woff2": "@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2",
+  "inter.woff2": "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+};
+
 const validId = (id: string) => /^[\w-]+$/.test(id);
 const isPdf = (b: Uint8Array) => b.length > 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
 
@@ -38,6 +43,13 @@ export function createApp(deps: AppDeps = {}) {
     if (!/^synthetic-(elena|harold)-packet\.pdf$/.test(name)) return c.json({ error: "not found" }, 404);
     const bytes = await readFile(new URL(`../samples/${name}`, import.meta.url)).catch(() => null);
     return bytes ? c.body(bytes, 200, { "content-type": "application/pdf", "content-disposition": `attachment; filename="${name}"` }) : c.json({ error: "sample not built" }, 404);
+  });
+  /** The deck's typefaces, self-hosted so pages load no third-party resources. */
+  app.get("/fonts/:name", async (c) => {
+    const file = FONTS[c.req.param("name")];
+    if (!file) return c.json({ error: "not found" }, 404);
+    const bytes = await readFile(new URL(`../node_modules/${file}`, import.meta.url)).catch(() => null);
+    return bytes ? c.body(bytes, 200, { "content-type": "font/woff2", "cache-control": "public, max-age=31536000, immutable" }) : c.json({ error: "font not installed" }, 404);
   });
   app.get("/health", (c) => c.json({ ok: true }));
 

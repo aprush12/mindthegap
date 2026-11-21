@@ -102,7 +102,7 @@ function medText({ it, report, arrival }: Ctx, capability: boolean): string | un
       const m = note(it, /cutoff (\d{1,2}):(\d{2})/i);
       const late = !!m && arrival.getHours() * 60 + arrival.getMinutes() >= Number(m[1]) * 60 + Number(m[2]);
       if (capability) return `Pharmacy can't get first doses here in time (${late ? `past ${clockFromHHMM(`${m![1]}:${m![2]}`)} cutoff; ` : ""}${tail})`;
-      return `First doses at risk: ${late ? "arrival past pharmacy cutoff" : "supply arrives after they're due"} (${tail})`;
+      return `${late ? "Arrives after pharmacy cutoff" : "Supply comes after doses are due"}: first doses may be late (${tail})`;
     }
     case "RX-01": {
       const bad = report.filter((r) => ["nf", "not_stocked", "not_accepted"].includes(r.status));
