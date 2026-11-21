@@ -1198,5 +1198,8 @@ export const elenaPacket: PacketSpec = {
   required: REQUIRED,
   extraChecks(all, ok) {
     ok("code status mentioned once, no result", (all.match(/code status/gi) ?? []).length === 1);
+    // Packet-completeness demo: HF with daily weights only in narrative, no signed order set and no weights order.
+    ok("no signed order set / no daily-weights order (packet gap PKT-HF-WEIGHTS)", !/SIGNED PHYSICIAN ORDER SET/.test(all) && !/(order|orders|ordered)[^.]{0,30}daily (standing )?weights?|daily (standing )?weights?[^.]{0,20}\b(ordered|order)\b/i.test(all));
+    ok("no dose change planted (med rec stays empty)", !/increased [a-z]+ to \d+ mg|dose (was )?(increased|changed)/i.test(all));
   },
 };

@@ -231,6 +231,22 @@ function progressNotes(w: Writer) {
   signed(w, "Priya Raman, MD - Hospital Medicine", "17 Nov 2026 17:30");
 }
 
+/**
+ * Planted dose change (medication reconciliation sweep): the 17 Nov cardiology note raises torsemide to 60 mg, but the
+ * discharge medication list and the signed order set (written earlier and not updated) still say 40 mg.
+ */
+function cardiologyProgress(w: Writer) {
+  w.section("Cardiology Progress Note", `${CARDS}, Cardiology - 17 Nov 2026 14:10`);
+  w.p("Follow-up visit before discharge. Euvolemic on examination with trace ankle edema. Rate 64 to 84, no pauses on telemetry. Potassium 4.5, creatinine 1.2. Weight 95.0 kg, 1 kg above the estimated dry weight of 94 kg.");
+  w.h("Plan");
+  w.bullets([
+    "Weight has plateaued above dry weight on the current diuretic dose: increased torsemide to 60 mg daily.",
+    "Continue empagliflozin, spironolactone, carvedilol 12.5 mg twice daily and amiodarone 200 mg daily unchanged.",
+    "Continue continuous cardiac telemetry for 7 days after discharge. Cardiology clinic follow-up 25 Nov 2026.",
+  ]);
+  signed(w, `${CARDS}, Cardiology`, "17 Nov 2026 14:30");
+}
+
 function hospitalCourse(w: Writer) {
   w.section("Hospital Course by Problem", "Hospital Medicine working summary for the receiving clinician - 17 Nov 2026 16:40");
   w.h("Heart failure with reduced ejection fraction (EF 25%)");
@@ -781,6 +797,8 @@ const REQUIRED: [string, RegExp][] = [
   ["payor name", /Northbridge Health Plan/],
   ["95.0 kg", /95\.0 kg/],
   ["torsemide", /torsemide 40 mg/i],
+  ["planted dose change: cardiology note raises torsemide to 60 mg", /increased torsemide to 60 mg daily/i],
+  ["daily-weights order with weight-gain escalation parameters", /Daily standing weight every morning[^.]*\. Notify the physician for a gain above 1 kg in 24 hours or 2 kg in a week/],
   ["empagliflozin (Jardiance)", /empagliflozin \(Jardiance\) 10 mg/i],
   ["spironolactone 25", /spironolactone 25 mg/i],
   ["K+/Cr standing laboratory order", /standing laboratory orders/i],
@@ -813,6 +831,7 @@ export const haroldPacket: PacketSpec = {
     hAndP(w);
     cardiology(w);
     progressNotes(w);
+    cardiologyProgress(w);
     hospitalCourse(w);
     nursing(w);
     flowsheet(w);
@@ -857,5 +876,7 @@ export const haroldPacket: PacketSpec = {
   required: REQUIRED,
   extraChecks(all, ok) {
     ok("no 'bed hold' content (deliberate gap)", !/bed.hold/i.test(all));
+    ok("torsemide conflict: exactly one 60 mg mention (the cardiology note)", (all.match(/torsemide[^.\n]{0,40}60 mg/gi) ?? []).length === 1);
+    ok("torsemide conflict: discharge list and order set still say 40 mg", /Torsemide 40 mg[\s\S]{0,40}40 mg PO/.test(all) && /Torsemide\s+40 mg PO daily/.test(all));
   },
 };

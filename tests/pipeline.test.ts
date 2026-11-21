@@ -29,8 +29,12 @@ const fakeLlm: Llm = {
     if (req.label === "facts") {
       return FactsResultSchema.parse({
         timing: { dischargeAt: "2026-11-17T18:42:00", arrivalAt: "2026-11-17T20:40:00" },
-        patient: { targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, weightKg: 71.4, ventDependent: false, trach: false, dialysis: false, elopementRisk: false },
-        medications: [{ name: "Furosemide 40 mg", dose: "40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-18T08:00:00", controlled: false, hardCopyPresent: null, correctionScale: null, quote: "heart failure", page: 2 }],
+        patient: { targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, weightKg: 71.4, ventDependent: false, trach: false, dialysis: false, elopementRisk: false, diagnoses: { heartFailure: true } },
+        monitoringOrders: { dailyWeightsOrdered: false, weightEscalationPlan: false, evidence: [{ quote: "heart failure", page: 2 }] },
+        medications: [{
+          name: "Furosemide 40 mg", dose: "40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-18T08:00:00", controlled: false, hardCopyPresent: null, correctionScale: null, quote: "heart failure", page: 2,
+          doseChanges: [{ listedDose: "40 mg daily", noteDose: "80 mg daily", noteContext: "17 Nov progress note", quoteList: "Furosemide 40 mg", pageList: 3, quoteNote: "Weight 71.4 kg", pageNote: 4 }],
+        }],
         rx06: { ruleId: "RX-06", answered: false, fields: [], evidence: [], contradictions: [] },
       }) as T;
     }
@@ -90,6 +94,12 @@ describe("pipeline", () => {
 
     const result = stored!.result as ScreenResult;
     expect(Object.keys(result.facilities).sort()).toEqual(["A", "B", "C"]);
+    // dose-change quotes are anchored like other evidence; packet gaps and med-rec land in the stored result
+    expect(stored!.extraction!.medications[0].doseChanges![0]).toMatchObject({ verifiedList: false, verifiedNote: true, pageNote: 4 });
+    expect(stored!.packetGaps!.map((g) => g.id)).toEqual(["PKT-HF-WEIGHTS", "PKT-HF-PLAN"]);
+    expect(result.packetGaps).toEqual(stored!.packetGaps);
+    expect(result.medRec.map((m) => m.id)).toEqual(["MEDREC:furosemide"]);
+    expect(stored!.extraction!.monitoringOrders!.evidence[0]).toMatchObject({ verified: true });
     // headline call failed in the fake: pipeline still completes with the deterministic headline
     expect(stored!.headline).toMatchObject({ source: "deterministic", droppedUngrounded: 0 });
     expect(stored!.priorities!.A.length).toBeGreaterThan(0);

@@ -28,6 +28,8 @@ export interface TopPriority {
   ruleIds: string[];
   dueBy?: string;
   severity: PrioritySeverity;
+  /** Deterministic question for the hospital, copied from the first cited candidate; never written by the model. */
+  followUpAsk?: string;
 }
 export interface Headline {
   /** "model": the model wrote the text (ungrounded entries dropped). "deterministic": built from the candidates. */
@@ -78,15 +80,19 @@ export function validateHeadline(out: HeadlineOutput, sent: Priorities): { headl
       if (p.ruleIds.length === 0 || cited.some((c) => !c)) { dropped++; continue; }
       // dueBy comes from the cited candidates, never from the model's own arithmetic
       const due = cited.map((c) => c!.dueBy).filter((d): d is string => !!d).sort((a, b) => ts(a) - ts(b))[0];
-      kept.push({ text: p.text.trim(), ruleIds: p.ruleIds, severity: p.severity, ...(due ? { dueBy: due } : {}) });
+      const ask = cited.find((c) => c!.followUpAsk)?.followUpAsk;
+      kept.push({ text: p.text.trim(), ruleIds: p.ruleIds, severity: p.severity, ...(due ? { dueBy: due } : {}), ...(ask ? { followUpAsk: ask } : {}) });
     }
+    // a dose conflict must never be dropped by the model: re-add any MEDREC candidate no kept entry cites
+    const missing = sent[id].filter((c) => c.id.startsWith("MEDREC:") && !kept.some((k) => k.ruleIds.includes(c.id)));
+    if (missing.length) kept.unshift(...deterministicPriorities(missing));
     perFacility[id] = { headline: out.perFacility[id].headline.trim(), topPriorities: kept.slice(0, MAX_PRIORITIES) };
   }
   return { headline: { source: "model", droppedUngrounded: dropped, patientSnapshot: out.patientSnapshot.trim(), perFacility }, dropped };
 }
 
 export function deterministicPriorities(cands: PriorityCandidate[]): TopPriority[] {
-  return cands.slice(0, MAX_PRIORITIES).map((c) => ({ text: c.text, ruleIds: [c.id], severity: c.severity, ...(c.dueBy ? { dueBy: c.dueBy } : {}) }));
+  return cands.slice(0, MAX_PRIORITIES).map((c) => ({ text: c.text, ruleIds: [c.id], severity: c.severity, ...(c.dueBy ? { dueBy: c.dueBy } : {}), ...(c.followUpAsk ? { followUpAsk: c.followUpAsk } : {}) }));
 }
 
 const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

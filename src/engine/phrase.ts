@@ -150,3 +150,102 @@ export function medLine(r: MedReport): string {
   if (r.status === "interchange") return `Get an interchange order: ${agentName(r)} → ${noInsulin(r.interchangeTo ?? "stocked agent")}`;
   return `${shortMed(r.med)}: ${need(r)}; first dose is due before supply is confirmed`;
 }
+
+// ---- follow-up asks: the one-sentence question for the discharging hospital (voice-agent call sheet) ----
+
+/** [ask when the packet is silent or the item is not met, ask when the record contradicts itself?] */
+const ASK: Record<string, [string, string?]> = {
+  "PAY-01": ["Confirm when the insurance authorization will be approved and for how many days", "Send the insurance authorization number and approved days"],
+  "PAY-02": ["Send documentation of the three-midnight inpatient stay"],
+  "PAY-03": ["Send the number of skilled nursing days already used"],
+  "PAY-04": ["Give us the name and phone number of the responsible party"],
+  "PAY-05": ["Send the Medicaid application reference number"],
+  "REG-01": ["Send the completed PASRR Level II determination", "Fax the PASRR Level I determination"],
+  "REG-02": ["Send the code status order and any advance directive or MOLST"],
+  "REG-03": ["Send the capacity assessment and the healthcare proxy's name if the patient lacks capacity"],
+  "REG-04": ["Send immunization dates and the TB screening result"],
+  "ACU-01": ["Confirm whether the patient is ventilator dependent"],
+  "ACU-02": ["Confirm whether the patient has a tracheostomy"],
+  "ACU-03": ["Send the IV line type, start time and IV therapy orders"],
+  "ACU-04": ["Confirm the dialysis chair and transport arrangements"],
+  "ACU-05": ["Confirm the TPN orders and who supplies the TPN"],
+  "ACU-06": ["Send the insulin correction scale from the MAR before the first meal"],
+  "ACU-07": ["Send the behavior or elopement-risk care plan"],
+  "ACU-08": ["Confirm whether one-to-one observation is required"],
+  "ACU-09": ["Confirm the patient's current weight"],
+  "INF-01": ["Send the MDRO and isolation status, or confirm there is none"],
+  "INF-02": ["Send the antibiotic indication, course length and stop date"],
+  "INF-03": ["Confirm whether isolation precautions are required"],
+  "RX-04": ["Send the signed hard-copy prescriptions for the controlled substances"],
+  "RX-06": ["Send the signed physician order set"],
+  "SKN-01": ["Send each wound's stage, size, site and treatment order"],
+  "SKN-02": ["Confirm which wounds were present on admission"],
+  "SKN-03": ["Confirm whether a specialty surface or wound vac is ordered"],
+  "THR-01": ["Send the weight-bearing status order"],
+  "THR-02": ["Send prior level of function and the PT, OT and speech recommendations"],
+  "THR-03": ["Send the list of required equipment and who supplies it"],
+  "NUT-01": ["Confirm the diet order against the swallow evaluation"],
+  "NUT-02": ["Send the tube feeding formula, rate, flushes and tube type"],
+  "MON-01": ["Send the standing lab order for the medications that need lab monitoring"],
+  "MON-02": ["Send the glucose check frequency and low-sugar parameters"],
+  "MON-03": ["Send the orders for telemetry, daily weights or oxygen saturation monitoring"],
+  "FUP-01": ["Name who receives each pending result"],
+  "FUP-02": ["Send the primary care physician's name and phone number"],
+  "FUP-03": ["Send each appointment's date, location and transport arrangement"],
+  "DCP-01": ["Confirm the discharge destination and home setup"],
+  "DCP-02": ["Confirm the family was told the bed-hold policy"],
+};
+
+/** When the facility itself cannot do it, the ask is about changing the plan, not sending paperwork. */
+const CAP_ASK: Record<string, string> = {
+  "CAP-BEDS": "Ask whether the transfer can wait for a bed in the target unit, or whether another unit is acceptable",
+  "MON-03": "Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed",
+  "RX-02": "Ask the prescriber how first doses will be covered, since supply arrives after they are due",
+  "ACU-06": "Ask the prescriber whether a simpler insulin plan can replace overnight sliding scale",
+};
+
+function medAsk(it: Item, report: MedReport[]): string | undefined {
+  switch (it.ruleId) {
+    case "RX-01": {
+      const bad = report.filter((r) => ["nf", "not_stocked", "not_accepted"].includes(r.status));
+      if (!bad.length) return undefined;
+      const w = worstOf(bad);
+      return `Ask the prescriber for a formulary alternative to ${shortMed(w.med)}${bad.length > 1 ? ` and ${bad.length - 1} other ${bad.length === 2 ? "med" : "meds"}` : ""}`;
+    }
+    case "RX-02": {
+      const risk = report.filter((r) => r.firstDoseAtRisk);
+      return risk.length ? `Ask the hospital how first doses of ${plural(risk.length, "med", "meds")} will be covered, since supply arrives after they are due` : undefined;
+    }
+    case "RX-03": {
+      const pa = report.filter((r) => r.payorPA);
+      return pa.length ? `Ask the hospital to start payor prior authorization for ${shortMed(pa[0].med)}${pa.length > 1 ? ` and ${pa.length - 1} other ${pa.length === 2 ? "med" : "meds"}` : ""}` : undefined;
+    }
+    case "RX-05": {
+      const ix = report.filter((r) => r.status === "interchange");
+      if (!ix.length) return undefined;
+      const r = ix[0];
+      return `Ask the prescriber for an interchange order: ${agentName(r)} → ${noInsulin(r.interchangeTo ?? "stocked agent")}${ix.length > 1 ? ` (+${ix.length - 1} more)` : ""}`;
+    }
+  }
+}
+
+/**
+ * Deterministic one-sentence ask for the hospital, per rule family. Pure text; never includes timestamps.
+ * Only for items that need action (not_met / unknown / contradictory).
+ */
+export function followUpAsk(it: Item, report: MedReport[]): string {
+  const capability = it.decision === "block" && it.resolvable === "capability";
+  if (capability && CAP_ASK[it.ruleId]) return CAP_ASK[it.ruleId];
+  const med = medAsk(it, report);
+  if (med) return med;
+  if (capability) return "Tell the hospital this facility can't meet this need and ask whether the plan can change";
+  const a = ASK[it.ruleId];
+  if (a) return it.state === "not_met" ? a[0] : (a[1] ?? a[0]);
+  return `Send documentation for: ${it.question}`;
+}
+
+/** Ask for a medication the first-dose clock flags when its rule item is not itself a tonight item. */
+export function medFollowUp(r: MedReport): string {
+  if (r.status === "interchange") return `Ask the prescriber for an interchange order: ${agentName(r)} → ${noInsulin(r.interchangeTo ?? "stocked agent")}`;
+  return `Ask the hospital how the first dose of ${shortMed(r.med)} will be covered (${need(r)})`;
+}

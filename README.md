@@ -34,6 +34,7 @@ All bodies are JSON unless noted. Stage 1 ships the facility endpoints; the pars
 | `POST /api/parses` | (future) `multipart/form-data`, field `packet` = PDF. `202 {"id": "...", "status": "processing"}` |
 | `GET /api/parses/:id` | (future) Full result, shape below. While `status` is `processing`, only `id`, `status`, `progress` are present |
 | `GET /api/parses/:id/summary` | (future) Compact row per facility for the list view |
+| `GET /api/parses/:id/call-sheet` | Flat voice-agent call sheet, see "Follow-up asks and the call sheet" |
 | `GET /api/parses/:id/document/:page` | (future) `{ "page": 12, "text": "..." }` for citation highlighting (1-based page) |
 
 ### Result shape (`GET /api/parses/:id`)
@@ -99,6 +100,26 @@ The summary opens with a "What matters most" section: a 2-3 sentence patient sna
 - `headline` (in `result.json`): `{ source, droppedUngrounded, patientSnapshot, perFacility: { A|B|C: { headline, topPriorities: [{ text, ruleIds, dueBy?, severity }] } } }`, from `src/pipeline/headline.ts`. One structured-output call per parse through the same `Llm` seam, model and env, with no PDF: the input is a compact JSON digest (patient facts, medications, per-facility verdict and the top 10 candidates with rule questions and evidence quotes).
 - Grounding: every `topPriorities` entry must cite ids present in the candidates sent for that facility. Entries citing an unknown id (or none) are dropped and counted in `headline.droppedUngrounded`. `dueBy` is taken from the cited candidates, not from the model.
 - Fallback: if the call fails, the reply is unusable or there is no key, the same shape is built deterministically from the candidates and `headline.source` is `"deterministic"` (otherwise `"model"`). A facility whose model entries were all dropped gets the deterministic entries. The pipeline never fails because of the headline call.
+
+## Dose conflicts, packet gaps and follow-up asks
+
+Three additive, facility-verdict-neutral features (none of them can change a verdict, blocking list or conditional list).
+
+- **Medication reconciliation sweep.** The facts extraction call reconciles every discharge medication against the final 72 hours of notes, consults and orders and reports each divergence as `Med.doseChanges[]` (`listedDose`, `noteDose`, `noteContext?`, both verbatim quotes and pages; anchored by the pipeline with `verifiedList`/`verifiedNote`). The model does not decide which dose is right. `src/engine/medrec.ts` turns each into a facility-independent tier-1 priority `MEDREC:<agent>` (chip `CONFIRM DOSE`): "Torsemide dose conflict: discharge list says 40 mg, last progress note says 60 mg — confirm before first dose". Also in `result.medRec` and as a flag on the `pharmacy_operations` criteria cell (flags never feed `worstState`).
+- **Packet-completeness checks.** `src/engine/packet-checks.ts` is a registry of `PacketCheck {id, appliesWhen, expectation, check, severity: "caution", gapText, followUpAsk}`. v1: `PKT-HF-WEIGHTS` (heart failure implies a daily-weights ORDER) and `PKT-HF-PLAN` (heart failure implies weight-gain escalation parameters). Inputs are `patient.diagnoses.heartFailure` and `Extraction.monitoringOrders {dailyWeightsOrdered, weightEscalationPlan, evidence[]}` (an order, not a narrative mention). Failures are `result.packetGaps: {id, text, followUpAsk, evidence?}[]` (also top-level `packetGaps` in `result.json`), shown as a "Packet gaps" list on every facility card (chip `PACKET GAP`) and as flags on the `monitoring_transitions` cell. Records without `monitoringOrders` never produce gaps. To add a check, append to `PACKET_CHECKS`.
+- **Follow-up asks and the call sheet.** `followUpAsk` is a one-sentence question for the discharging hospital ("Fax the PASRR Level I determination"). It is set deterministically in `src/engine/phrase.ts` (`followUpAsk`, per rule family) on every blocking/conditional/review `Item`, copied to `PriorityCandidate` and `TopPriority`, and built by the MEDREC/PKT builders for their items. The model headline may rewrite `text`, but `followUpAsk` is always copied from the cited candidate (never model-written); a `MEDREC:` candidate the model omits is re-added. The HTML shows it as a small "Ask: ..." line.
+
+`GET /api/parses/:id/call-sheet` (404 unknown parse, 409 until complete) returns the future voice agent's input, a flat array ordered tonight, block, capability, clock, caution, review:
+
+```json
+[
+  { "itemId": "MEDREC:torsemide", "severity": "tonight", "followUpAsk": "Confirm current torsemide dose: discharge list 40 mg vs 17 Nov cardiology progress note 60 mg" },
+  { "itemId": "PKT-HF-WEIGHTS", "severity": "caution", "followUpAsk": "Send the signed physician order for daily weights" },
+  { "facilityId": "A", "itemId": "MON-03", "severity": "capability", "followUpAsk": "Ask the physician whether telemetry can be replaced with spot checks, or whether a facility with telemetry is needed" }
+]
+```
+
+`facilityId` is omitted for facility-independent items (`MEDREC:*`, `PKT-*`), which are listed once. Records parsed before this feature have no asks and yield an empty or shorter list.
 
 ## Policy and capacity data
 

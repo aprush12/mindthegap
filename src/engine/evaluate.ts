@@ -2,6 +2,7 @@ import type { Policy } from "../policy/index.js";
 import type { CapacitySnapshot, Decision, FacilityId, FacilityRuleCell, Predicate, Resolvable, Rule } from "../policy/schema.js";
 import type { Contradiction, Evidence, Extraction, Patient, RuleAnswer } from "../types.js";
 import { evaluateMed, matchAgent, type MedReport } from "./formulary.js";
+import { followUpAsk } from "./phrase.js";
 import { firstDoseRisks, hhmm, minuteOfDay, resolveBy } from "./leadtime.js";
 
 export type RuleState = "met" | "not_met" | "unknown" | "contradictory" | "not_applicable";
@@ -22,6 +23,8 @@ export interface Item {
   contradictions: Contradiction[];
   detail?: string;
   notes: string;
+  /** One-sentence question for the discharging hospital; set on every item that needs action. Deterministic. */
+  followUpAsk?: string;
 }
 
 export interface FacilityEvaluation {
@@ -225,6 +228,7 @@ export function evaluateFacility(extraction: Extraction, facilityId: FacilityId,
     if (windowHours !== undefined) item.windowHours = windowHours;
     if (resolveByIso) item.resolveBy = resolveByIso;
     if (detail) item.detail = detail;
+    if (decision !== null) item.followUpAsk = followUpAsk(item, formularyReport);
     return item;
   };
 
@@ -238,6 +242,7 @@ export function evaluateFacility(extraction: Extraction, facilityId: FacilityId,
       ruleId: "CAP-BEDS", category: "CAP", criterion: "acuity_vs_staffing", question: "Bed available tonight in the target unit?",
       state: "not_met", decision: "block", resolvable: "capability", preArrival: false, requirement: { unit, minBeds: 1 },
       evidence: [], contradictions: [], detail: `0 ${unit} beds available at ${cap.asOf}`, notes: "capacity snapshot",
+      followUpAsk: followUpAsk({ ruleId: "CAP-BEDS", state: "not_met", decision: "block", resolvable: "capability", question: "" } as Item, []),
     });
   }
 

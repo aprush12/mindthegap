@@ -4,12 +4,13 @@ import type { Extraction } from "../types.js";
 import type { Item, RuleState } from "./evaluate.js";
 import type { FacilityResult, ScreenResult } from "./verdict.js";
 import type { MedReport } from "./formulary.js";
-import { itemPhrase, medLine } from "./phrase.js";
+import { buildMedRec } from "./medrec.js";
+import { itemPhrase, medFollowUp, medLine } from "./phrase.js";
 
 export type PrioritySeverity = "tonight" | "block" | "capability" | "clock";
 
 export interface PriorityCandidate {
-  /** Rule id (PAY-01), or a synthetic id: CAP-BEDS, FORMULARY:<agent>. */
+  /** Rule id (PAY-01), or a synthetic id: CAP-BEDS, FORMULARY:<agent>, MEDREC:<agent>. */
   id: string;
   /** One-line plain-language action phrase (no timestamps), built from item data only. */
   text: string;
@@ -20,6 +21,8 @@ export interface PriorityCandidate {
   question?: string;
   state?: RuleState;
   evidence: { quote: string; page?: number }[];
+  /** One-sentence question for the discharging hospital (deterministic; the model headline never rewrites it). */
+  followUpAsk?: string;
 }
 
 /** A conditional item or first dose due within this many hours of `now` counts as "tonight". */
@@ -40,6 +43,7 @@ function fromItem(it: Item, tier: number, severity: PrioritySeverity, cx: Ctx, d
     evidence: it.evidence.slice(0, 2).map((e) => ({ quote: e.quote, ...(e.page !== undefined ? { page: e.page } : {}) })),
   };
   if (dueBy) c.dueBy = dueBy;
+  if (it.followUpAsk) c.followUpAsk = it.followUpAsk;
   return c;
 }
 
@@ -87,7 +91,15 @@ export function prioritize(f: FacilityResult, extraction: Extraction, now: Date)
     if (!due || t(due) > horizon) continue;
     const rule = Object.entries(MED_RULE_STATUS).find(([, s]) => s.includes(r.status))?.[0];
     if (rule && (tonightIds.has(rule) || f.blocking.some((i) => i.ruleId === rule))) continue; // already covered
-    tonight.push({ id: `FORMULARY:${r.agent ?? r.med}`, text: medLine(r), severity: "tonight", tier: 1, dueBy: due, question: "Can this medication's first dose be given on time?", evidence: [] });
+    tonight.push({ id: `FORMULARY:${r.agent ?? r.med}`, text: medLine(r), severity: "tonight", tier: 1, dueBy: due, question: "Can this medication's first dose be given on time?", evidence: [], followUpAsk: medFollowUp(r) });
+  }
+  // dose conflicts between the discharge list and the final days' notes: facility-independent confirm-items,
+  // always tier 1 (a wrong dose is given at the first dose), never a rule failure and never a verdict input
+  for (const m of buildMedRec(extraction)) {
+    tonight.push({
+      id: m.id, text: m.text, severity: "tonight", tier: 1, ...(m.dueBy ? { dueBy: m.dueBy } : {}),
+      question: "Do the discharge list and the latest notes agree on this dose?", evidence: m.evidence, followUpAsk: m.followUpAsk,
+    });
   }
   tonight.sort(byDue).forEach(push);
 

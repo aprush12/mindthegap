@@ -75,6 +75,24 @@ export interface RuleValueShapes {
   "DCP-01": { destinationDocumented?: boolean; safeHome?: boolean; placementPath?: boolean };
 }
 
+/**
+ * A divergence between the discharge list and the final 72 hours of notes/orders for one medication.
+ * Quotes are verbatim; the pipeline anchors them like other evidence. Never resolved: it is a confirm-item.
+ */
+export interface DoseChange {
+  listedDose: string;
+  noteDose: string;
+  /** Which note says it, in plain words ("17 Nov cardiology progress note"), if the record makes that clear. */
+  noteContext?: string;
+  quoteList: string;
+  pageList: number;
+  quoteNote: string;
+  pageNote: number;
+  /** Set by the anchoring step: whether each quote was found in the document text. */
+  verifiedList?: boolean;
+  verifiedNote?: boolean;
+}
+
 export interface Med {
   name: string;
   dose?: string;
@@ -84,6 +102,8 @@ export interface Med {
   controlled?: boolean;
   hardCopyPresent?: boolean;
   correctionScale?: boolean;
+  /** Last-days reconciliation divergences (see DoseChange). */
+  doseChanges?: DoseChange[];
 }
 
 export interface Timing {
@@ -105,7 +125,17 @@ export interface Patient {
   elopementRisk?: boolean;
   /** Derived from INF-01 when not supplied. */
   isolationRequired?: boolean;
+  /** Diagnosis flags that packet-completeness checks read. Undefined/false never satisfies a check's appliesWhen. */
+  diagnoses?: { heartFailure?: boolean; [dx: string]: boolean | undefined };
   [field: string]: unknown;
+}
+
+/** What the packet actually ORDERS for weight monitoring (an order, not a narrative mention; same discipline as MON-01). */
+export interface MonitoringOrders {
+  dailyWeightsOrdered: boolean;
+  /** Weight-gain escalation parameters ("call MD if +3 lb/day or +5 lb/week") exist as an order or discharge instruction. */
+  weightEscalationPlan: boolean;
+  evidence: Evidence[];
 }
 
 export interface Extraction {
@@ -113,4 +143,6 @@ export interface Extraction {
   medications: Med[];
   timing: Timing;
   patient: Patient;
+  /** Absent on records parsed before packet checks existed; checks that need it then do not fire. */
+  monitoringOrders?: MonitoringOrders;
 }

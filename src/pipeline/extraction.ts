@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Rule } from "../policy/schema.js";
-import type { Contradiction, Evidence, Extraction, Med, Patient, RuleAnswer, Timing } from "../types.js";
+import type { Contradiction, DoseChange, Evidence, Extraction, Med, MonitoringOrders, Patient, RuleAnswer, Timing } from "../types.js";
 import type { Llm } from "./anthropic.js";
 import { SYSTEM_PROMPT } from "./document-map.js";
 
@@ -46,6 +46,14 @@ export const FactsResultSchema = z.object({
     trach: nullable(z.boolean()),
     dialysis: nullable(z.boolean()),
     elopementRisk: nullable(z.boolean()),
+    diagnoses: z.object({
+      heartFailure: nullable(z.boolean()).describe("true when heart failure (any type, acute or chronic) is a diagnosis in this record"),
+    }),
+  }),
+  monitoringOrders: z.object({
+    dailyWeightsOrdered: z.boolean().describe("true ONLY if a daily-weights ORDER exists (order set, standing order, discharge orders). A narrative mention such as 'monitor weights' or an education note is not an order"),
+    weightEscalationPlan: z.boolean().describe("true ONLY if weight-gain escalation parameters are ordered or instructed (for example call the physician for a gain of more than 3 lb in a day or 5 lb in a week)"),
+    evidence: z.array(EvidenceSchema).describe("verbatim quotes supporting each true flag; for a false flag, the closest narrative mention if there is one"),
   }),
   medications: z.array(
     z.object({
@@ -59,6 +67,19 @@ export const FactsResultSchema = z.object({
       correctionScale: nullable(z.boolean()),
       quote: z.string().describe("verbatim line from the record listing this medication"),
       page: z.number().int(),
+      doseChanges: z
+        .array(
+          z.object({
+            listedDose: z.string().describe("dose/frequency as the discharge list gives it"),
+            noteDose: z.string().describe("the different dose/frequency a later note, consult or order gives"),
+            noteContext: nullable(z.string()).describe("which note says it, in plain words without clock times (for example '17 Nov cardiology progress note')"),
+            quoteList: z.string().describe("verbatim discharge-list text"),
+            pageList: z.number().int(),
+            quoteNote: z.string().describe("verbatim text from the final-72-hours note/consult/order"),
+            pageNote: z.number().int(),
+          }),
+        )
+        .describe("empty when the final-72-hours documents agree with the discharge list"),
     }),
   ),
   rx06: AnswerSchema,
@@ -117,6 +138,12 @@ Patient facts: set each field only when the record states it; otherwise null (nu
 
 Medications: list every discharge medication exactly as the record names it, with a verbatim quote and page for each. dose/route/schedule only as written. firstDoseDue only when the record gives administration times; null otherwise. controlled and hardCopyPresent only when the record says so; otherwise null.
 
+Medication reconciliation sweep: after listing the discharge medications, reconcile EACH one against the doses and frequencies stated in the FINAL 72 HOURS of progress notes, consults and orders (the three days before discharge). For every medication where a final-72-hours document gives a different dose or frequency than the discharge list (for example a note saying "increased torsemide to 60 mg daily" while the list says 40 mg), add a doseChanges entry with both verbatim quotes and both pages. Report every divergence. Do NOT decide which one is right and do not adjust the medication's own dose field; the discharge list stays as written. A medication with no divergence gets an empty doseChanges list.
+
+Diagnoses: diagnoses.heartFailure is true when heart failure is a diagnosis anywhere in the record, false if the record rules it out, null if not stated.
+
+Monitoring orders: monitoringOrders.dailyWeightsOrdered is true only when an ORDER exists for daily weights (physician order set, standing or discharge orders); a narrative sentence ("daily weights continue", an education note, a nursing plan of care) is not an order. monitoringOrders.weightEscalationPlan is true only when weight-gain escalation parameters (when to call the physician for a gain over a day or a week) are written as an order or discharge instruction. Give verbatim evidence quotes with pages.
+
 Signed orders (rule RX-06):
 ${ruleBlock(rx06)}
 ${ANSWER_FORMAT.split("\n").slice(1).join("\n")}
@@ -136,21 +163,36 @@ function toAnswer(raw: RawAnswer): RuleAnswer {
   return answer;
 }
 
-function toFacts(raw: RawFacts): { timing: Timing; patient: Patient; medications: Med[] } {
+function toFacts(raw: RawFacts): { timing: Timing; patient: Patient; medications: Med[]; monitoringOrders?: MonitoringOrders } {
   const timing: Timing = {};
   if (raw.timing.dischargeAt) timing.dischargeAt = raw.timing.dischargeAt;
   if (raw.timing.arrivalAt) timing.arrivalAt = raw.timing.arrivalAt;
   const patient: Patient = {};
-  for (const [k, v] of Object.entries(raw.patient)) if (v != null) patient[k] = v;
+  for (const [k, v] of Object.entries(raw.patient)) if (v != null && k !== "diagnoses") patient[k] = v;
+  const dx = raw.patient.diagnoses;
+  if (dx) {
+    const flags: NonNullable<Patient["diagnoses"]> = {};
+    for (const [k, v] of Object.entries(dx)) if (v != null) flags[k] = v;
+    if (Object.keys(flags).length) patient.diagnoses = flags;
+  }
   const medications: Med[] = raw.medications.map((m) => {
     const med: Med = { name: m.name };
     for (const k of ["dose", "route", "schedule", "firstDoseDue", "controlled", "hardCopyPresent", "correctionScale"] as const) {
       const v = nn(m[k]);
       if (v !== undefined) (med as unknown as Record<string, unknown>)[k] = v;
     }
+    const changes: DoseChange[] = (m.doseChanges ?? []).map((d) => ({
+      listedDose: d.listedDose, noteDose: d.noteDose, ...(d.noteContext ? { noteContext: d.noteContext } : {}),
+      quoteList: d.quoteList, pageList: d.pageList, quoteNote: d.quoteNote, pageNote: d.pageNote,
+    }));
+    if (changes.length) med.doseChanges = changes;
     return med;
   });
-  return { timing, patient, medications };
+  const mo = raw.monitoringOrders;
+  const monitoringOrders: MonitoringOrders | undefined = mo
+    ? { dailyWeightsOrdered: mo.dailyWeightsOrdered, weightEscalationPlan: mo.weightEscalationPlan, evidence: mo.evidence.map((e) => ({ quote: e.quote, claimedPage: e.page })) }
+    : undefined;
+  return { timing, patient, medications, ...(monitoringOrders ? { monitoringOrders } : {}) };
 }
 
 /** Bounded-concurrency map; results keep input order and the first error rejects. */
@@ -206,7 +248,7 @@ export async function runExtraction(llm: Llm, pdfBase64: string, rules: Rule[], 
   }
 
   return {
-    extraction: { answers, medications: facts.medications, timing: facts.timing, patient: facts.patient },
+    extraction: { answers, medications: facts.medications, timing: facts.timing, patient: facts.patient, ...(facts.monitoringOrders ? { monitoringOrders: facts.monitoringOrders } : {}) },
     medicationEvidence: factsRaw.medications.map((m) => ({ quote: m.quote, claimedPage: m.page })),
   };
 }

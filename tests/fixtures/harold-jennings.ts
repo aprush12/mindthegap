@@ -14,9 +14,25 @@ const absent = (ruleId: string) => yes(ruleId, { present: false }, "not present 
 
 export const harold: Extraction = {
   timing: { dischargeAt: "2026-11-18T11:30:00", arrivalAt: HAROLD_ARRIVAL },
-  patient: { weightKg: 95, targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, ventDependent: false, trach: false, dialysis: false, elopementRisk: false },
+  patient: { weightKg: 95, targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: false, ventDependent: false, trach: false, dialysis: false, elopementRisk: false, diagnoses: { heartFailure: true } },
+  // Packet orders daily weights with escalation parameters (the signed order set), so no packet gaps.
+  monitoringOrders: {
+    dailyWeightsOrdered: true,
+    weightEscalationPlan: true,
+    evidence: [
+      { quote: "Daily standing weight every morning after voiding, before breakfast, same scale.", claimedPage: 22, page: 22, verified: true },
+      { quote: "Notify the physician for a gain above 1 kg in 24 hours or 2 kg in a week.", claimedPage: 22, page: 22, verified: true },
+    ],
+  },
   medications: [
-    { name: "Torsemide 40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-19T08:00:00" },
+    {
+      name: "Torsemide 40 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-19T08:00:00",
+      // planted: the 17 Nov cardiology progress note raised the dose after the discharge list/order set were written
+      doseChanges: [{
+        listedDose: "40 mg", noteDose: "60 mg", noteContext: "17 Nov cardiology progress note",
+        quoteList: "Torsemide 40 mg", pageList: 21, quoteNote: "increased torsemide to 60 mg daily", pageNote: 11, verifiedList: true, verifiedNote: true,
+      }],
+    },
     { name: "Empagliflozin (Jardiance) 10 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-19T08:00:00" },
     { name: "Spironolactone 25 mg", route: "PO", schedule: "daily", firstDoseDue: "2026-11-19T08:00:00" },
     { name: "Carvedilol 12.5 mg", route: "PO", schedule: "BID", firstDoseDue: "2026-11-18T17:00:00" },

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prioritizeAll, type Priorities } from "../engine/priority.js";
+import type { PacketGap } from "../engine/packet-checks.js";
 import { screen, type ScreenResult } from "../engine/verdict.js";
 import { loadCapacity, loadPolicy, type Policy } from "../policy/index.js";
 import type { CapacitySnapshot } from "../policy/schema.js";
@@ -28,6 +29,8 @@ export interface ParseRecord {
   extraction?: Extraction;
   medicationEvidence?: Evidence[];
   result?: ScreenResult;
+  /** Facility-independent packet-completeness gaps (copy of result.packetGaps for convenience). */
+  packetGaps?: PacketGap[];
   /** Ranked "what matters most" candidates per facility (deterministic). */
   priorities?: Priorities;
   /** Top-of-report summary: model-written and grounded in `priorities`, or deterministic fallback. */
@@ -49,8 +52,23 @@ export interface RunOptions {
 /** Anchor every quote in the extraction; returns a new Extraction (inputs untouched). */
 export function anchorExtraction(ex: Extraction, pages: Page[], sections: DocSection[]): Extraction {
   const a = (e: Evidence) => anchorEvidence(e, pages, sections);
+  const anchorQuotes = (quote: string, page: number) => a({ quote, claimedPage: page });
   return {
     ...ex,
+    medications: ex.medications.map((m) =>
+      m.doseChanges?.length
+        ? {
+            ...m,
+            doseChanges: m.doseChanges.map((d) => {
+              const l = anchorQuotes(d.quoteList, d.pageList);
+              const n = anchorQuotes(d.quoteNote, d.pageNote);
+              // a verified quote reports the page it was actually found on
+              return { ...d, pageList: l.verified ? l.page ?? d.pageList : d.pageList, pageNote: n.verified ? n.page ?? d.pageNote : d.pageNote, verifiedList: l.verified === true, verifiedNote: n.verified === true };
+            }),
+          }
+        : m,
+    ),
+    ...(ex.monitoringOrders ? { monitoringOrders: { ...ex.monitoringOrders, evidence: ex.monitoringOrders.evidence.map(a) } } : {}),
     answers: ex.answers.map((ans) => ({
       ...ans,
       evidence: ans.evidence.map(a),
@@ -103,6 +121,7 @@ export async function runPipeline(opts: RunOptions): Promise<ParseRecord> {
       extraction: anchored,
       medicationEvidence: medicationEvidence.map((e) => anchorEvidence(e, pages, documentMap)),
       result,
+      packetGaps: result.packetGaps,
       priorities,
       headline,
     };

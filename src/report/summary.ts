@@ -91,7 +91,8 @@ function itemHtml(it: Item, showClock: boolean): string {
     .join("");
   const evs = it.evidence.map(evidenceHtml).join("");
   const body = evs || contra ? `<ul class="evs">${evs}${contra}</ul>` : `<div class="none">No supporting passage in the record.</div>`;
-  return `<div class="item"><div class="q"><span class="rid">${esc(it.ruleId)}</span> ${esc(it.question)} <span class="state s-${it.state}">${STATE_LABEL[it.state]}</span></div>${detailHtml(it)}${body}${showClock ? clock : ""}</div>`;
+  const ask = it.followUpAsk ? `<div class="ask">Ask: ${esc(it.followUpAsk)}</div>` : "";
+  return `<div class="item"><div class="q"><span class="rid">${esc(it.ruleId)}</span> ${esc(it.question)} <span class="state s-${it.state}">${STATE_LABEL[it.state]}</span></div>${detailHtml(it)}${ask}${body}${showClock ? clock : ""}</div>`;
 }
 
 function facilitySection(input: SummaryInput, f: FacilityResult): string {
@@ -103,6 +104,8 @@ function facilitySection(input: SummaryInput, f: FacilityResult): string {
 }
 
 const SEV_LABEL: Record<TopPriority["severity"], string> = { tonight: "TONIGHT", block: "BLOCKED", capability: "CAN'T DO HERE", clock: "ON THE CLOCK" };
+/** Dose-conflict items get their own chip; everything else uses its severity chip. */
+const chipFor = (t: TopPriority) => (t.ruleIds.some((r) => r.startsWith("MEDREC:")) ? "CONFIRM DOSE" : SEV_LABEL[t.severity]);
 const BADGE_LABEL: Record<Verdict, string> = { accept: "ACCEPT", conditional_accept: "CONDITIONAL", blocked: "BLOCKED", decline: "DECLINE" };
 
 function mattersMostHtml(input: SummaryInput): string {
@@ -115,10 +118,15 @@ function mattersMostHtml(input: SummaryInput): string {
     const items = p.topPriorities
       .map((t) => {
         const due = dueLabel(t.ruleIds, t.dueBy, arrival);
-        return `<li class="pri sev-${t.severity}"><span class="sev">${SEV_LABEL[t.severity]}</span> <span class="ptext">${esc(t.text)}</span>${due ? ` <span class="due">${esc(due)}</span>` : ""} <span class="ids">${esc(t.ruleIds.join(", "))}</span></li>`;
+        const ask = t.followUpAsk ? `<div class="ask">Ask: ${esc(t.followUpAsk)}</div>` : "";
+        return `<li class="pri sev-${t.severity}"><span class="sev${chipFor(t) === "CONFIRM DOSE" ? " sev-confirm" : ""}">${chipFor(t)}</span> <span class="ptext">${esc(t.text)}</span>${due ? ` <span class="due">${esc(due)}</span>` : ""} <span class="ids">${esc(t.ruleIds.join(", "))}</span>${ask}</li>`;
       })
       .join("");
-    return `<div class="card card-${f.verdict}"><div class="badge b-${f.verdict}">${BADGE_LABEL[f.verdict]}</div><h3>${esc(name(input, id))}</h3><p class="hl">${esc(p.headline)}</p><ol>${items}</ol></div>`;
+    const gaps = input.result.packetGaps ?? [];
+    const gapList = gaps.length
+      ? `<div class="gaps"><h4>Packet gaps</h4><ul>${gaps.map((g) => `<li><span class="sev sev-gap">PACKET GAP</span> <span class="ptext">${esc(g.text)}</span> <span class="ids">${esc(g.id)}</span><div class="ask">Ask: ${esc(g.followUpAsk)}</div></li>`).join("")}</ul></div>`
+      : "";
+    return `<div class="card card-${f.verdict}"><div class="badge b-${f.verdict}">${BADGE_LABEL[f.verdict]}</div><h3>${esc(name(input, id))}</h3><p class="hl">${esc(p.headline)}</p><ol>${items}</ol>${gapList}</div>`;
   }).join("");
   const note = h.source === "deterministic" ? "Generated from the checklist without a model." : "Written by a model from the checklist; every item cites checklist rule ids.";
   return `<section class="matters"><h2>What matters most</h2><p class="snap">${esc(h.patientSnapshot)}</p><div class="mm-grid">${cols}</div><p class="none">${note} The full checklist, evidence and medication timing follow below.</p></section>`;
@@ -139,7 +147,8 @@ ${row("First dose at risk", (f) => (f.firstDoseAtRisk ? "Yes" : "No"))}
   const grid = `<table class="criteria"><thead><tr><th>Criterion</th>${head}</tr></thead><tbody>${CRITERIA.map(
     (c) => `<tr><th scope="row">${esc(CRITERION_LABEL[c] ?? c)}</th>${FACILITY_IDS.map((id) => {
       const cell = result.criteriaView[c][id];
-      return `<td class="s-${cell.worstState}">${STATE_LABEL[cell.worstState]}</td>`;
+      const flags = (cell.flags ?? []).map((fl) => `<div class="cflag"><span class="sev sev-gap">${fl.chip}</span> ${esc(fl.text)}</div>`).join("");
+      return `<td class="s-${cell.worstState}">${STATE_LABEL[cell.worstState]}${flags}</td>`;
     }).join("")}</tr>`,
   ).join("")}</tbody></table>`;
 
@@ -181,6 +190,11 @@ thead th{background:#f3f5f7}tbody th{font-weight:600;width:22%}
 .sev-block{border-left-color:#e8590c}.sev-block .sev{background:#e8590c}
 .sev-capability{border-left-color:var(--bad)}.sev-capability .sev{background:#7a1a14}
 .sev-clock{border-left-color:#e0a000;color:#333}.sev-clock .sev{background:#8a6a00}
+.ask{font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
+.sev-confirm,.sev-gap{background:#5b3fa0}
+.gaps{margin-top:12px;border-top:1px dashed var(--line);padding-top:6px}.gaps h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.gaps ul{margin:0;padding-left:0;list-style:none}.gaps li{margin:5px 0;font-size:13px}
+.cflag{font-weight:400;font-size:12px;color:var(--ink);margin-top:4px}
 .meddetail{margin:14px 0 0}.meddetail summary{cursor:pointer;font-weight:600;color:var(--muted)}.meddetail table{font-size:13px}.meddetail .risk td{background:#fff6e5}
 .criteria td{font-weight:600}
 @media print{body{max-width:none;padding:0}.card{break-inside:avoid}.facility{break-before:page}.item{break-inside:avoid}table{break-inside:avoid}thead{display:table-header-group}}
@@ -215,11 +229,12 @@ export function renderTextTable(input: SummaryInput): string {
   const blocks = FACILITY_IDS.map((id) => {
     const p = h.perFacility[id];
     const lines = p.topPriorities.slice(0, 6).map((t, i) => {
-      const base = `  ${i + 1}. [${SEV_LABEL[t.severity]}] ${t.text}`;
+      const base = `  ${i + 1}. [${chipFor(t)}] ${t.text}`;
       const due = dueLabel(t.ruleIds, t.dueBy, arrival);
       return due && base.length + due.length + 3 <= MAX_LINE ? `${base} (${due})` : base;
     });
-    return [`${name(input, id)}: ${p.headline}`, ...lines].join("\n");
+    const gaps = (input.result.packetGaps ?? []).map((g) => `  - [PACKET GAP] ${g.text}`);
+    return [`${name(input, id)}: ${p.headline}`, ...lines, ...gaps].join("\n");
   });
   return `${table}\n\nWhat matters most\n${h.patientSnapshot}\n\n${blocks.join("\n\n")}`;
 }

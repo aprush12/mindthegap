@@ -12,7 +12,14 @@ const absent = (ruleId: string) => yes(ruleId, { present: false }, "not present 
 
 export const elena: Extraction = {
   timing: { dischargeAt: "2026-11-17T18:42:00", arrivalAt: ARRIVAL },
-  patient: { weightKg: 71.4, targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: true, ventDependent: false, trach: false, dialysis: false, elopementRisk: false },
+  patient: { weightKg: 71.4, targetUnit: "complex_medical", medicaidPending: false, tubeFed: false, insulinRequired: true, ventDependent: false, trach: false, dialysis: false, elopementRisk: false, diagnoses: { heartFailure: true } },
+  // Weights appear only in narrative notes; the packet has no order set at all (RX-06 unanswered), so no daily-weights
+  // order and no escalation order: both packet gaps fire. No dose change anywhere in the packet.
+  monitoringOrders: {
+    dailyWeightsOrdered: false,
+    weightEscalationPlan: false,
+    evidence: [{ quote: "Daily weights for heart failure", claimedPage: 12, page: 12, verified: true }],
+  },
   medications: [
     { name: "Sacubitril/valsartan (Entresto) 24/26 mg", route: "PO", schedule: "BID", firstDoseDue: "2026-11-18T08:00:00" },
     { name: "Insulin glargine 20 units", route: "SC", schedule: "nightly", firstDoseDue: "2026-11-17T21:00:00" },

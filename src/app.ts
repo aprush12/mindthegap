@@ -5,6 +5,7 @@ import { CapacitySchema, FacilitiesSchema, FacilityIdSchema, CapacitySnapshotSch
 import { createLlm, type Llm } from "./pipeline/anthropic.js";
 import type { Page } from "./pipeline/extract-text.js";
 import { createRecord, newParseId, runPipeline, type ParseRecord } from "./pipeline/run.js";
+import { buildCallSheet } from "./report/call-sheet.js";
 import { renderSummary } from "./report/summary.js";
 import { loadFile, saveFile } from "./store.js";
 
@@ -66,6 +67,15 @@ export function createApp(deps: AppDeps = {}) {
     if (!rec) return c.json({ error: "unknown parse" }, 404);
     if (rec.status !== "complete" || !rec.result) return c.json({ error: `parse is ${rec.status}`, status: rec.status }, 409);
     return c.html(renderSummary({ parseId: rec.parseId, arrivalAt: rec.arrivalAt, evaluatedAt: rec.evaluatedAt, result: rec.result, headline: rec.headline, facilityNames: facilityNames() }));
+  });
+
+  /** Flat voice-agent call sheet: every unresolved item with its one-sentence ask for the hospital. */
+  app.get("/api/parses/:id/call-sheet", async (c) => {
+    const id = c.req.param("id");
+    const rec = validId(id) ? await loadFile<ParseRecord>(id, "result.json") : undefined;
+    if (!rec) return c.json({ error: "unknown parse" }, 404);
+    if (rec.status !== "complete" || !rec.result) return c.json({ error: `parse is ${rec.status}`, status: rec.status }, 409);
+    return c.json(buildCallSheet(rec.result));
   });
 
   app.get("/api/parses/:id/document/:page", async (c) => {
